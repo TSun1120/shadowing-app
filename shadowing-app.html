@@ -206,6 +206,12 @@ select.rec-sel{width:100%;font-size:12px;padding:5px 8px;margin-bottom:7px;borde
 .sub-item.expr-high{border-left:3px solid var(--amber)}
 .sub-expr-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-left:5px;vertical-align:middle;flex-shrink:0}
 .sub-expr-dot.lo{background:rgba(90,159,212,0.6)}.sub-expr-dot.md{background:var(--blue)}.sub-expr-dot.hi{background:var(--amber)}
+.sub-score-pill{display:inline-flex;align-items:center;gap:2px;margin-left:6px;padding:1px 5px;border-radius:6px;font-size:10px;font-weight:600;line-height:1.4;flex-shrink:0}
+.sub-score-pill.sc-hi{background:var(--green-l);color:var(--green)}
+.sub-score-pill.sc-md{background:var(--blue-l);color:var(--blue)}
+.sub-score-pill.sc-lo{background:var(--amber-l);color:var(--amber)}
+.sub-score-pill.sc-bad{background:var(--red-l);color:var(--red)}
+#sentScoreWrap{margin-top:8px;text-align:center;padding:8px 0 4px}
 #sentExprHits{padding:6px 0 0;flex-wrap:wrap;gap:4px;align-items:center;font-size:11px;color:var(--text3)}
 .expr-hit-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;white-space:nowrap;margin:2px 2px 0}
 .expr-hit-badge.cat-叙事展开{background:rgba(6,182,212,0.12);color:#0891b2}
@@ -457,6 +463,10 @@ select.rec-sel{width:100%;font-size:12px;padding:5px 8px;margin-bottom:7px;borde
           <canvas id="cmpLyricsCanvas" style="width:100%;height:48px;display:block;border-radius:3px;margin-bottom:8px"></canvas>
           <div style="font-size:10px;font-weight:600;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em">语速节奏（能量包络）</div>
           <canvas id="cmpEnvCanvas" style="width:100%;height:130px;display:block;border-radius:4px"></canvas>
+          <div id="pitchChartWrap" style="display:none;margin-top:10px">
+            <div style="font-size:10px;font-weight:600;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em">语调曲线（音高 Hz）</div>
+            <canvas id="cmpPitchCanvas" style="width:100%;height:90px;display:block;border-radius:4px"></canvas>
+          </div>
           <div id="wordChipsWrap">
             <div id="wordChips"></div>
             <div id="wordChipHint">拖动单词到上方波形图，标注你感受到的停顿位置 · 点击已标注的词可删除</div>
@@ -466,9 +476,20 @@ select.rec-sel{width:100%;font-size:12px;padding:5px 8px;margin-bottom:7px;borde
               <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
               播放对比（左耳=原声 · 右耳=我的录音）
             </button>
+            <div style="display:flex;gap:8px;margin-top:6px">
+              <button class="btn-cmp" id="btnDlOrig" style="flex:1;justify-content:center;gap:5px;font-size:11px;padding:5px 8px;opacity:.75" title="下载原声片段">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v13M5 16l7 7 7-7"/><path d="M3 21h18"/></svg>
+                下载原声片段
+              </button>
+              <button class="btn-cmp" id="btnDlRec" style="flex:1;justify-content:center;gap:5px;font-size:11px;padding:5px 8px;opacity:.75" title="下载我的录音片段">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v13M5 16l7 7 7-7"/><path d="M3 21h18"/></svg>
+                下载我的录音
+              </button>
+            </div>
           </div>
         </div>
         <p id="cmpVizNote" style="font-size:11px;color:var(--text3);margin-top:6px;text-align:center;min-height:16px"></p>
+        <div id="sentScoreWrap" style="display:none"></div>
       </div>
 
       <div class="section-title">
@@ -538,6 +559,7 @@ let recordings = [];
 let mediaRec = null;
 let recChunks = [];
 let isRec = false;
+let _newRecordingPending = false; // 仅新录音完成时才计入次数
 let micStream = null; // 缓存麦克风 stream，避免每次都重新请求权限
 let recInt = null;
 let recSecs = 0;
@@ -801,11 +823,13 @@ function renderSubList(filter='') {
     const dotCls  = score >= 6 ? 'hi' : score >= 3 ? 'md' : 'lo';
     const dotTip  = score > 0 && s._exprHits ? s._exprHits.slice(0,3).map(h=>h[0]).join(' · ') : '';
     const dot = score > 0 ? `<span class="sub-expr-dot ${dotCls}" title="${dotTip}"></span>` : '';
+    const sd = loadSentScore(s.text);
+    const pill = sd ? (() => { const sc = sd.best; const cls2 = sc>=80?'sc-hi':sc>=60?'sc-md':sc>=40?'sc-lo':'sc-bad'; return `<span class="sub-score-pill ${cls2}" title="共练习 ${sd.attempts} 次，最高 ${sd.best} 分">★${sd.best} · ${sd.attempts}次</span>`; })() : '';
     return `<div class="sub-item ${cls} ${exprCls}" data-real="${realIdx}" data-fi="${i}">
       <span class="sub-num">${realIdx+1}</span>
       <div class="sub-body">
         <div class="sub-text">${s.text}</div>
-        <div class="sub-time" style="display:flex;align-items:center">${s.start.slice(0,8)} → ${s.end.slice(0,8)}${dot}</div>
+        <div class="sub-time" style="display:flex;align-items:center;flex-wrap:wrap;gap:2px">${s.start.slice(0,8)} → ${s.end.slice(0,8)}${dot}${pill}</div>
       </div>
     </div>`;
   }).join('');
@@ -883,6 +907,16 @@ function selectSentence(realIdx) {
   renderOrigChart();
   updateStarBtn();
   showExprHits(realIdx);
+  // 切换句子时刷新分数显示
+  const wrap = document.getElementById('sentScoreWrap');
+  if (wrap) {
+    const sd = loadSentScore(s.text);
+    if (sd) {
+      showScoreDisplay(sd.best, sd, s.text);
+    } else {
+      wrap.style.display = 'none';
+    }
+  }
 }
 
 btnPrev.addEventListener('click', () => { if (curIdx > 0) selectSentence(curIdx-1); });
@@ -1190,6 +1224,7 @@ btnRecordBtn.addEventListener('click', async ()=>{
         renderRecList();
         // 自动加载刚录制的片段到对比图
         cmpSel.value = String(recordings.length - 1);
+        _newRecordingPending = true;
         renderCompareViz();
         //stream.getTracks().forEach(t=>t.stop());
       };
@@ -1394,6 +1429,102 @@ function medianPitch(pitches) {
   if (!voiced.length) return 0;
   voiced.sort((a,b)=>a-b);
   return Math.round(voiced[Math.floor(voiced.length/2)]);
+}
+
+/* ══════════════════════════════
+   Rhythm Score & Attempt Tracking
+══════════════════════════════ */
+function computeRhythmScore(env1, env2) {
+  // DTW（动态时间规整）：容忍每个局部词的快慢差异，是语音相似度的标准算法
+  const N = 40;
+  function resample(arr) {
+    const out = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      const t = i / (N - 1) * (arr.length - 1);
+      const lo = Math.floor(t), hi = Math.min(arr.length - 1, lo + 1);
+      out[i] = arr[lo] + (t - lo) * (arr[hi] - arr[lo]);
+    }
+    return out;
+  }
+  function smooth(arr) {
+    const out = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      let s = 0, c = 0;
+      for (let j = Math.max(0, i - 4); j <= Math.min(N - 1, i + 4); j++) { s += arr[j]; c++; }
+      out[i] = s / c;
+    }
+    return out;
+  }
+  const a = smooth(resample(env1));
+  const b = smooth(resample(env2));
+  // DTW，Sakoe-Chiba band ±30%
+  const band = Math.ceil(N * 0.30);
+  const W = N + 1;
+  const dtw = new Float32Array(W * W).fill(1e9);
+  dtw[0] = 0;
+  for (let i = 1; i <= N; i++) {
+    if (i <= band) dtw[i * W] = dtw[(i - 1) * W] + Math.abs(a[i - 1] - b[0]);
+  }
+  for (let j = 1; j <= N; j++) {
+    if (j <= band) dtw[j] = dtw[j - 1] + Math.abs(a[0] - b[j - 1]);
+  }
+  for (let i = 1; i <= N; i++) {
+    for (let j = Math.max(1, i - band); j <= Math.min(N, i + band); j++) {
+      const cost = Math.abs(a[i - 1] - b[j - 1]);
+      const prev = Math.min(dtw[(i-1)*W + j], dtw[i*W + (j-1)], dtw[(i-1)*W + (j-1)]);
+      dtw[i * W + j] = cost + prev;
+    }
+  }
+  // normalized DTW distance（每点平均差距，区间[0,1]）
+  const dist = dtw[N * W + N] / N;
+  // 校准：dist=0 → 100分，dist≥0.20 → 0分
+  return Math.round(Math.max(0, Math.min(100, (1 - dist / 0.20) * 100)));
+}
+
+function _sentScoreKey(sentText) { return 'shadowing-score2-' + encodeURIComponent((sentText||'').trim().slice(0,80)); }
+function loadSentScore(sentText) {
+  try { return JSON.parse(localStorage.getItem(_sentScoreKey(sentText))); } catch(e) { return null; }
+}
+function saveRecScore(sentText, score) {
+  const d = loadSentScore(sentText) || { attempts: 0, best: 0, history: [] };
+  d.attempts++;
+  d.history.push(score);
+  if (score > d.best) d.best = score;
+  localStorage.setItem(_sentScoreKey(sentText), JSON.stringify(d));
+  return d;
+}
+function resetSentScore(sentText) {
+  localStorage.removeItem(_sentScoreKey(sentText));
+}
+
+function showScoreDisplay(score, data, sentText) {
+  const wrap = document.getElementById('sentScoreWrap');
+  if (!wrap) return;
+  const clr = score >= 80 ? 'var(--green)' : score >= 60 ? 'var(--blue)' : score >= 40 ? 'var(--amber)' : 'var(--red)';
+  const lbl = score >= 80 ? '优秀' : score >= 60 ? '良好' : score >= 40 ? '继续加油' : '再练一次';
+  const trend = data.history.length >= 2 ? (() => {
+    const prev = data.history[data.history.length - 2];
+    const diff = score - prev;
+    return diff > 0 ? `<span style="color:var(--green);font-size:11px">▲ +${diff}</span>` :
+           diff < 0 ? `<span style="color:var(--red);font-size:11px">▼ ${diff}</span>` :
+           `<span style="color:var(--text3);font-size:11px">— 持平</span>`;
+  })() : '';
+  wrap.style.display = 'block';
+  wrap.innerHTML = `<div style="display:inline-flex;align-items:center;gap:14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 16px">
+    <div style="font-size:38px;font-weight:700;color:${clr};line-height:1;font-variant-numeric:tabular-nums">${score}</div>
+    <div>
+      <div style="font-size:13px;font-weight:600;color:${clr}">${lbl} ${trend}</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:2px">此句第 <b>${data.attempts}</b> 次 · 最高 <b style="color:${clr}">${data.best}</b> 分
+        <button id="btnResetScore" title="重置此句记录" style="margin-left:6px;background:none;border:none;cursor:pointer;font-size:10px;color:var(--text3);padding:0;vertical-align:middle">重置</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('btnResetScore').addEventListener('click', () => {
+    if (!confirm('确定重置此句的练习记录？')) return;
+    resetSentScore(sentText);
+    wrap.style.display = 'none';
+    renderSubList(searchBox.value);
+  });
 }
 
 function computeWordPositions(env, n) {
@@ -1688,11 +1819,19 @@ function drawPitchChart(canvas, pitch1, pitch2, sel = null, dur1 = 1, dur2 = 1, 
 function redrawCharts() {
   const ec = document.getElementById('cmpEnvCanvas');
   const lc = document.getElementById('cmpLyricsCanvas');
+  const pc = document.getElementById('cmpPitchCanvas');
+  const pw = document.getElementById('pitchChartWrap');
   const speed = parseFloat(spdSel.value) || 1;
   const effectiveOrigDur = cmpOrigDur / speed;
   const maxDurR = Math.max(effectiveOrigDur, cmpRecDur, 0.001);
   if (cmpEnv1 && ec)   drawEnvChart(ec, cmpEnv1, cmpEnv2, null, effectiveOrigDur, cmpRecDur, cmpPlayhead, cmpText, cmpWordFracs);
   if (cmpText && lc)   drawLyricsBar(lc, cmpText, cmpEnv1, cmpPlayhead, effectiveOrigDur / maxDurR, cmpWordFracs);
+  if (cmpPitch1 && cmpPitch2 && pc && pw) {
+    pw.style.display = 'block';
+    drawPitchChart(pc, cmpPitch1, cmpPitch2, null, effectiveOrigDur, cmpRecDur, cmpPlayhead);
+  } else if (pw) {
+    pw.style.display = 'none';
+  }
 }
 
 async function renderOrigChart() {
@@ -1773,6 +1912,8 @@ async function renderCompareViz() {
   const recIdx = parseInt(cmpSel.value);
   if (curIdx < 0 || !origAudioBuffer) { vizWrap.style.display = 'none'; return; }
   if (isNaN(recIdx) || !recordings[recIdx]) { renderOrigChart(); return; }
+  // 在任何 await 之前捕获当前句子文本，避免 async 期间 curIdx 漂移
+  const sentText = SUBS[curIdx] ? SUBS[curIdx].text : '';
   vizWrap.style.display = 'block';
   noteEl.textContent = '分析中…';
   const s = SUBS[curIdx];
@@ -1793,6 +1934,12 @@ async function renderCompareViz() {
   const ro = findVoiceOnset(rawRec, recBuf.sampleRate);
   const origSeg = rawOrig.slice(oo.start, oo.end);
   const recSeg  = rawRec.slice(ro.start, ro.end);
+
+  // 检查录音是否有实际语音（RMS 能量至少是原声的 3%）
+  function rms(arr) { let s = 0; for (let i = 0; i < arr.length; i++) s += arr[i]*arr[i]; return Math.sqrt(s / Math.max(1, arr.length)); }
+  const origRms = rms(origSeg), recRms = rms(recSeg);
+  const isSilent = recRms < origRms * 0.03;
+
   cmpOrigSeg = origSeg; cmpOrigSr = sr;
   cmpRecSeg  = recSeg;  cmpRecSr  = recBuf.sampleRate;
   cmpOrigDur = origSeg.length / sr;
@@ -1804,7 +1951,8 @@ async function renderCompareViz() {
   const env1 = extractEnvelope(origSeg, 200);
   const env2 = extractEnvelope(recSeg, 200);
   cmpEnv1 = env1; cmpEnv2 = env2;
-  cmpPitch1 = null; cmpPitch2 = null;
+  cmpPitch1 = extractPitch(origSeg, sr);
+  cmpPitch2 = extractPitch(recSeg, recBuf.sampleRate);
   redrawCharts();
   const origDur = (origSeg.length / sr).toFixed(1);
   const recDur  = (recSeg.length / recBuf.sampleRate).toFixed(1);
@@ -1812,6 +1960,35 @@ async function renderCompareViz() {
   const speedStr = ratio > 1.05 ? `慢 ${((ratio-1)*100).toFixed(0)}%` : ratio < 0.95 ? `快 ${((1-ratio)*100).toFixed(0)}%` : '速度相近';
   noteEl.textContent = `原声 ${origDur}s · 你的录音 ${recDur}s · 你比原声${speedStr}`;
   document.getElementById('btnPlayCmpWrap').style.display = 'block';
+  // 计算节奏相似度得分，只在新录音时计入次数
+  const rhythmScore = isSilent ? 0 : computeRhythmScore(env1, env2);
+  if (_newRecordingPending) {
+    _newRecordingPending = false;
+    recordings[recIdx].score = isSilent ? null : rhythmScore;
+    recordings[recIdx].sentText = sentText;
+    if (isSilent) {
+      noteEl.textContent = '未检测到语音，请重新录音';
+      document.getElementById('sentScoreWrap').style.display = 'none';
+    } else {
+      const scoreData = saveRecScore(sentText, rhythmScore);
+      showScoreDisplay(rhythmScore, scoreData, sentText);
+      renderSubList(searchBox.value);
+    }
+  } else {
+    // 回看旧录音：显示当时的分数 + 该句累计数据，不增加计数
+    const displayScore = (recordings[recIdx] && recordings[recIdx].score != null) ? recordings[recIdx].score : (isSilent ? null : rhythmScore);
+    if (displayScore == null) {
+      document.getElementById('sentScoreWrap').style.display = 'none';
+    } else {
+      const storedText = (recordings[recIdx] && recordings[recIdx].sentText) ? recordings[recIdx].sentText : sentText;
+      const sentData = loadSentScore(storedText);
+      const wrap = document.getElementById('sentScoreWrap');
+      if (wrap) {
+        if (sentData) showScoreDisplay(displayScore, sentData, storedText);
+        else wrap.style.display = 'none';
+      }
+    }
+  }
 }
 
 /* ══════════════════════════════
@@ -1888,6 +2065,21 @@ async function playComparison() {
   btn.disabled = false;
   btn.innerHTML = '<svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>播放对比（左耳=原声 · 右耳=我的录音）';
 }
+
+function downloadSegment(seg, sr, filename) {
+  if (!seg || !seg.length) return;
+  const blob = float32ToWav(seg, sr);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+}
+document.getElementById('btnDlOrig').addEventListener('click', () => {
+  downloadSegment(cmpOrigSeg, cmpOrigSr, '原声片段.wav');
+});
+document.getElementById('btnDlRec').addEventListener('click', () => {
+  downloadSegment(cmpRecSeg, cmpRecSr, '我的录音片段.wav');
+});
 
 /* ══════════════════════════════
    SRT Import
