@@ -1,0 +1,2612 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>跟读练习 · Shadowing App</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f4f1;--surface:#fff;--surface2:#f0eeea;--surface3:#e8e6e1;
+  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.16);
+  --text:#1a1916;--text2:#6b6860;--text3:#a09e98;
+  --blue:#185FA5;--blue-l:#e6f1fb;--blue-m:#378ADD;
+  --red:#a32d2d;--red-l:#fcebeb;
+  --green:#3b6d11;--green-l:#eaf3de;
+  --amber:#854f0b;--amber-l:#faeeda;
+  --r:10px;--rl:14px;
+  --sh:0 1px 3px rgba(0,0,0,0.06),0 4px 14px rgba(0,0,0,0.05);
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#141416;--surface:#1e1e20;--surface2:#28282c;--surface3:#323236;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+  --text:#f0eeea;--text2:#a09e98;--text3:#6b6860;
+  --blue:#5a9fd4;--blue-l:#0c2840;--blue-m:#378ADD;
+  --red:#e07070;--red-l:#2a1212;
+  --green:#7cbf40;--green-l:#162408;
+  --amber:#f0a030;--amber-l:#2a1a00;
+}}
+html{height:100%;overflow:hidden}
+body{font-family:-apple-system,'PingFang SC','Microsoft YaHei','Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);height:100%;overflow:hidden;display:flex;flex-direction:column}
+
+/* header */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 1.5rem;height:52px;display:flex;align-items:center;gap:10px;flex-shrink:0;z-index:200}
+.logo{width:26px;height:26px;background:var(--blue);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.logo svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round}
+header h1{font-size:15px;font-weight:600;letter-spacing:-0.01em}
+header small{font-size:12px;color:var(--text2);margin-left:2px}
+
+/* layout */
+main{flex:1;min-height:0;display:grid;grid-template-columns:340px 1fr;gap:0;overflow:hidden}
+
+/* left panel: subtitle list */
+.panel-left{border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);min-height:0;overflow:hidden}
+.panel-left-header{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.panel-left-header h2{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;flex:1}
+.subtitle-search{width:100%;font-size:12px;padding:6px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--surface2);color:var(--text);outline:none}
+.subtitle-search:focus{border-color:var(--blue)}
+
+.subtitle-list{flex:1;height:0;overflow-y:auto;padding:6px;overscroll-behavior:contain}
+.subtitle-list::-webkit-scrollbar{width:8px}
+.subtitle-list::-webkit-scrollbar-track{background:transparent}
+.subtitle-list::-webkit-scrollbar-thumb{background:var(--text3);border-radius:4px;border:2px solid var(--surface)}
+.subtitle-list::-webkit-scrollbar-thumb:hover{background:var(--text2)}
+
+.sub-item{display:flex;gap:8px;padding:9px 10px;border-radius:8px;cursor:pointer;transition:background .1s;align-items:flex-start;border:1.5px solid transparent}
+.sub-item:hover{background:var(--surface2)}
+.sub-item.active{background:var(--blue-l);border-color:rgba(24,95,165,.25)}
+.sub-item.playing{background:var(--green-l);border-color:rgba(59,109,17,.3)}
+.sub-num{font-size:10px;font-weight:600;color:var(--text3);min-width:22px;padding-top:2px;font-variant-numeric:tabular-nums}
+.sub-body{flex:1;min-width:0}
+.sub-text{font-size:13px;line-height:1.5;color:var(--text)}
+.sub-time{font-size:10px;color:var(--text3);margin-top:3px;font-variant-numeric:tabular-nums}
+.sub-item.active .sub-text,.sub-item.playing .sub-text{font-weight:500}
+
+/* right panel */
+.panel-right{display:flex;flex-direction:column;min-height:0;overflow-y:auto;background:var(--bg)}
+.panel-right::-webkit-scrollbar{width:8px}
+.panel-right::-webkit-scrollbar-track{background:transparent}
+.panel-right::-webkit-scrollbar-thumb{background:var(--text3);border-radius:4px;border:2px solid var(--bg)}
+.panel-right::-webkit-scrollbar-thumb:hover{background:var(--text2)}
+
+/* sentence display */
+.sentence-display{padding:20px 24px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.sentence-nav{display:flex;align-items:center;gap:6px;margin-bottom:12px}
+.btn-nav{width:28px;height:28px;border-radius:7px;border:1px solid var(--border2);background:var(--surface2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);transition:all .1s;flex-shrink:0}
+.btn-nav svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+.btn-nav:hover{background:var(--surface3);color:var(--text)}
+.btn-nav:disabled{opacity:.35;cursor:default}
+.sentence-counter{font-size:12px;color:var(--text2);flex:1;text-align:center;font-variant-numeric:tabular-nums}
+.sentence-time{font-size:11px;color:var(--text3)}
+
+.sentence-text{font-size:22px;line-height:1.5;color:var(--text);font-weight:400;letter-spacing:.01em;min-height:66px;display:flex;align-items:center}
+.sentence-text.empty{font-size:14px;color:var(--text3);justify-content:center;font-style:italic}
+
+/* action buttons row */
+.action-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.btn-action{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px;cursor:pointer;transition:all .1s;white-space:nowrap;font-weight:500}
+.btn-action svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.btn-action:hover{background:var(--surface3)}
+.btn-action.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn-action.primary:hover{opacity:.88}
+.btn-action.danger{background:var(--red);border-color:var(--red);color:#fff}
+.btn-action.danger:hover{opacity:.88}
+.btn-action.active{background:var(--green-l);border-color:var(--green);color:var(--green)}
+.btn-action.recording{background:var(--red-l);border-color:var(--red);color:var(--red);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* mini player */
+.mini-player{padding:12px 24px 14px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.wave-wrap{position:relative;height:48px;background:var(--surface2);border-radius:8px;overflow:hidden;cursor:pointer;margin-bottom:8px}
+canvas#wc{position:absolute;inset:0;width:100%;height:100%}
+.wave-prog{position:absolute;left:0;top:0;bottom:0;background:rgba(24,95,165,.12);pointer-events:none}
+.wave-loop{position:absolute;top:0;bottom:0;background:rgba(59,109,17,.15);border-left:2px solid var(--green);border-right:2px solid var(--green);pointer-events:none;display:none}
+.w-head{position:absolute;top:0;bottom:0;width:2px;background:var(--blue);pointer-events:none}
+.time-row{display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:8px;font-variant-numeric:tabular-nums}
+.player-row{display:flex;align-items:center;gap:8px}
+.btn-rnd{width:32px;height:32px;border-radius:50%;border:1px solid var(--border2);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text);transition:all .1s}
+.btn-rnd svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.btn-rnd:hover{background:var(--surface2);border-color:var(--blue-m)}
+.btn-play-main{width:42px;height:42px;border-radius:50%;border:none;background:var(--blue);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .15s;flex-shrink:0}
+.btn-play-main svg{width:18px;height:18px;stroke:#fff;fill:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.btn-play-main:hover{opacity:.85}
+.sp{flex:1}
+select.spd{font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:8px;background:var(--surface);color:var(--text);cursor:pointer}
+.spd-lbl{font-size:11px;color:var(--text2)}
+
+/* recordings panel */
+.recordings-panel{padding:16px 24px}
+.recordings-panel::-webkit-scrollbar{display:none}
+.section-title{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.section-title svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* upload overlay */
+.upload-overlay{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center}
+.upload-box{background:var(--surface);border-radius:var(--rl);padding:3rem 2.5rem;text-align:center;max-width:440px;width:90%;box-shadow:var(--sh)}
+.upload-zone{border:2px dashed var(--border2);border-radius:var(--r);padding:2rem 1.5rem;cursor:pointer;transition:all .15s;margin-bottom:16px}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--blue);background:var(--blue-l)}
+.upload-zone svg{width:40px;height:40px;stroke:var(--text3);fill:none;stroke-width:1.5;margin-bottom:10px;stroke-linecap:round}
+.upload-zone p{font-size:14px;color:var(--text2)}
+.upload-zone small{font-size:12px;color:var(--text3);margin-top:4px;display:block}
+.upload-hint{font-size:12px;color:var(--text3)}
+.upload-hint strong{color:var(--text2)}
+
+/* rec items */
+.rec-empty{font-size:13px;color:var(--text3);text-align:center;padding:1.5rem 0}
+.rec-item{display:flex;align-items:center;gap:8px;padding:9px 11px;background:var(--surface);border-radius:8px;border:1px solid var(--border);margin-bottom:6px;transition:border-color .1s}
+.rec-item:hover{border-color:var(--border2)}
+.rec-dot-n{width:20px;height:20px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--text2);flex-shrink:0}
+.rec-meta{flex:1;min-width:0}
+.rec-label{font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec-sub{font-size:11px;color:var(--text3);margin-top:1px}
+.rec-btns{display:flex;gap:4px}
+.btn-si{width:28px;height:28px;border-radius:7px;border:1px solid var(--border2);background:var(--surface2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .1s;text-decoration:none;color:var(--text)}
+.btn-si svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.btn-si.p:hover{background:var(--blue-l);border-color:var(--blue);color:var(--blue)}
+.btn-si.d:hover{background:var(--red-l);border-color:var(--red);color:var(--red)}
+
+/* compare */
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.cmp-col{background:var(--surface);border-radius:8px;border:1px solid var(--border);padding:11px 13px}
+.cmp-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);margin-bottom:8px}
+.btn-cmp{display:flex;align-items:center;gap:6px;width:100%;padding:7px 10px;border-radius:7px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:12px;cursor:pointer;transition:all .1s;font-weight:500}
+.btn-cmp svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;flex-shrink:0}
+.btn-cmp:hover{background:var(--blue-l);border-color:var(--blue);color:var(--blue)}
+select.rec-sel{width:100%;font-size:12px;padding:5px 8px;margin-bottom:7px;border:1px solid var(--border2);border-radius:7px;background:var(--surface2);color:var(--text)}
+
+/* status pill */
+.status-pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:3px 9px;border-radius:999px;font-weight:500}
+.status-pill.loop{background:var(--green-l);color:var(--green)}
+.status-pill.rec{background:var(--red-l);color:var(--red)}
+
+/* upload trigger button */
+.btn-upload-trigger{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:8px;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);font-size:12px;cursor:pointer;transition:all .1s}
+.btn-upload-trigger:hover{background:var(--surface3);color:var(--text)}
+.btn-upload-trigger svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+
+#fileInput,#srtInput,#jsonInput{display:none}
+/* ── Favorites ── */
+.panel-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);flex-shrink:0}
+.panel-tab{flex:1;padding:8px 4px;font-size:11px;font-weight:600;color:var(--text3);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:color .15s,border-color .15s;letter-spacing:.05em;text-transform:uppercase}
+.panel-tab.active{color:var(--text);border-bottom-color:var(--blue)}
+.panel-tab:hover:not(.active){color:var(--text2)}
+.fav-list{flex:1;height:0;overflow-y:auto;padding:6px;overscroll-behavior:contain}
+.fav-list::-webkit-scrollbar{width:8px}
+.fav-list::-webkit-scrollbar-thumb{background:var(--text3);border-radius:4px;border:2px solid var(--surface)}
+.fav-item{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;cursor:default}
+.fav-item:hover{border-color:var(--border2)}
+.fav-text{font-size:13px;line-height:1.5;color:var(--text);margin-bottom:6px}
+.fav-row{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3)}
+.fav-time{font-variant-numeric:tabular-nums}
+.btn-fav-play{padding:3px 9px;border-radius:5px;border:1px solid var(--border2);background:var(--surface2);font-size:11px;color:var(--text2);cursor:pointer;transition:all .1s}
+.btn-fav-play:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-l)}
+.btn-fav-del{padding:3px 7px;border-radius:5px;border:none;background:none;font-size:11px;color:var(--text3);cursor:pointer;transition:color .1s}
+.btn-fav-del:hover{color:var(--red)}
+.btn-fav-shadow{margin-left:auto;padding:3px 9px;border-radius:5px;border:1px solid var(--border2);background:var(--surface2);font-size:11px;color:var(--text2);cursor:pointer;transition:all .1s;white-space:nowrap}
+.btn-fav-shadow:hover{border-color:var(--amber);color:var(--amber);background:var(--amber-l)}
+.fav-empty{font-size:13px;color:var(--text3);text-align:center;padding:3rem 1rem;line-height:2}
+.btn-action.starred{background:var(--amber-l);border-color:var(--amber);color:var(--amber)}
+.sub-fav-dot{width:5px;height:5px;border-radius:50%;background:var(--amber);flex-shrink:0;margin-top:6px}
+.fav-karaoke{width:100%;height:44px;border-radius:6px;background:var(--surface2);margin-top:8px;display:none}
+.fav-practice-banner{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--amber-l);border-bottom:1px solid var(--amber);font-size:12px;color:var(--amber);flex-shrink:0}
+.fav-practice-banner strong{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn-exit-practice{padding:3px 9px;border-radius:5px;border:1px solid var(--amber);background:none;font-size:11px;color:var(--amber);cursor:pointer;white-space:nowrap;flex-shrink:0}
+.btn-exit-practice:hover{background:var(--amber);color:#fff}
+.fav-item.fav-playing{border-color:var(--blue);background:var(--blue-l)}
+.word-chip{display:inline-flex;align-items:center;padding:3px 10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;font-size:12px;cursor:grab;user-select:none;transition:background .15s,opacity .15s;white-space:nowrap}
+.word-chip:hover{background:var(--blue-l);border-color:var(--blue)}.word-chip:active{cursor:grabbing}
+.word-chip.placed{opacity:0.38;cursor:pointer;text-decoration:line-through;border-style:dashed}.word-chip.placed:hover{opacity:0.65;background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.5)}
+#wordChipsWrap{padding:6px 0 2px;display:none}
+#wordChips{display:flex;flex-wrap:wrap;gap:5px;min-height:24px}
+#wordChipHint{font-size:10px;color:var(--text3);margin-top:4px}
+.cmp-env-drop-active{outline:2px dashed var(--blue);outline-offset:2px}
+/* ── Expression scoring ── */
+.sub-item.expr-low{border-left:3px solid rgba(90,159,212,0.55)}
+.sub-item.expr-mid{border-left:3px solid var(--blue)}
+.sub-item.expr-high{border-left:3px solid var(--amber)}
+.sub-expr-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-left:5px;vertical-align:middle;flex-shrink:0}
+.sub-expr-dot.lo{background:rgba(90,159,212,0.6)}.sub-expr-dot.md{background:var(--blue)}.sub-expr-dot.hi{background:var(--amber)}
+#sentExprHits{padding:6px 0 0;flex-wrap:wrap;gap:4px;align-items:center;font-size:11px;color:var(--text3)}
+.expr-hit-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;white-space:nowrap;margin:2px 2px 0}
+.expr-hit-badge.cat-叙事展开{background:rgba(6,182,212,0.12);color:#0891b2}
+.expr-hit-badge.cat-情感经历{background:rgba(139,92,246,0.12);color:#7c3aed}
+.expr-hit-badge.cat-人际关系{background:rgba(34,197,94,0.12);color:#16a34a}
+.expr-hit-badge.cat-顿悟领悟{background:var(--amber-l);color:var(--amber)}
+.expr-hit-badge.cat-决策权衡{background:var(--blue-l);color:var(--blue)}
+.expr-hit-badge.cat-时间叙事{background:var(--surface2);color:var(--text2);border:1px solid var(--border2)}
+.expr-hit-badge.cat-立场观点{background:rgba(234,88,12,0.12);color:#c2410c}
+.expr-hit-badge.cat-自定义{background:rgba(163,45,45,0.1);color:#b91c1c}
+.expr-hit-badge .expr-dismiss-btn{background:none;border:none;cursor:pointer;font-size:10px;padding:0 0 0 3px;color:inherit;opacity:.4;line-height:1;vertical-align:middle}
+.expr-hit-badge .expr-dismiss-btn:hover{opacity:1}
+#exprManagerWrap{border-top:1px solid var(--border);padding:8px 14px 10px;display:none;background:var(--surface);flex-shrink:0}
+#exprManagerWrap .em-title{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
+#userExprList{display:flex;flex-wrap:wrap;gap:4px;min-height:4px;margin-bottom:7px}
+.user-expr-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;background:rgba(163,45,45,0.1);color:#b91c1c;border:1px solid rgba(163,45,45,0.25);border-radius:10px;font-size:11px}
+.user-expr-chip button{background:none;border:none;cursor:pointer;color:inherit;opacity:0.55;padding:0 0 0 1px;font-size:13px;line-height:1}
+.user-expr-chip button:hover{opacity:1}
+.expr-add-row{display:flex;gap:5px}
+.expr-add-row input{flex:1;padding:4px 8px;border:1px solid var(--border2);border-radius:6px;background:var(--surface2);font-size:12px;color:var(--text);outline:none}
+.expr-add-row input:focus{border-color:var(--blue)}
+#exprBulkWrap{margin-top:8px;display:none}
+#exprBulkInput{width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid var(--border2);border-radius:6px;background:var(--surface2);font-size:11px;color:var(--text);resize:vertical;min-height:70px;outline:none;line-height:1.6}
+#exprBulkInput:focus{border-color:var(--blue)}
+.btn-bulk-cancel{padding:3px 9px;border-radius:6px;border:1px solid var(--border2);background:none;font-size:11px;color:var(--text2);cursor:pointer}
+.btn-bulk-confirm{padding:3px 10px;border-radius:6px;border:1px solid var(--blue);background:var(--blue-l);color:var(--blue);font-size:11px;font-weight:600;cursor:pointer}
+.btn-bulk-confirm:hover{background:var(--blue);color:#fff}
+.btn-expr-bulk{padding:3px 8px;border-radius:6px;border:1px solid var(--border2);background:none;font-size:11px;color:var(--text2);cursor:pointer;white-space:nowrap}
+.btn-expr-bulk:hover{background:var(--surface2)}
+.expr-add-row input:focus{border-color:var(--blue)}
+.btn-expr-add{padding:4px 10px;border-radius:6px;border:1px solid var(--blue);background:var(--blue-l);color:var(--blue);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn-expr-add:hover{background:var(--blue);color:#fff}
+.btn-expr-filter{padding:3px 9px;border-radius:7px;border:1px solid var(--border2);background:var(--surface2);font-size:11px;color:var(--text2);cursor:pointer;white-space:nowrap;transition:all .15s}
+.btn-expr-filter.active{background:var(--amber-l);border-color:var(--amber);color:var(--amber);font-weight:600}
+.btn-expr-manage{padding:3px 9px;border-radius:7px;border:1px solid var(--border2);background:var(--surface2);font-size:11px;color:var(--text2);cursor:pointer;white-space:nowrap;transition:all .15s}
+.btn-expr-manage.active{background:var(--blue-l);border-color:var(--blue);color:var(--blue);font-weight:600}
+
+/* ── WhisperX drag-drop + status ── */
+#wxDragOverlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);z-index:9900;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .15s}
+#wxDragOverlay.show{opacity:1}
+#wxDragOverlay .wx-box{background:var(--surface);border:2.5px dashed var(--blue);border-radius:18px;padding:40px 60px;text-align:center;pointer-events:none}
+.wx-drop-icon{font-size:44px;line-height:1}
+.wx-drop-title{font-size:18px;font-weight:700;margin-top:10px;color:var(--text)}
+.wx-drop-sub{font-size:12px;color:var(--text3);margin-top:6px;line-height:1.6}
+#wxStatus{position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:12px;box-shadow:0 4px 20px rgba(0,0,0,.18);z-index:9800;max-width:310px;display:none;flex-direction:column;gap:5px}
+#wxStatus.show{display:flex}
+#wxStatus.done{border-color:#16a34a}
+#wxStatus.err{border-color:var(--red)}
+.wx-label{font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--text3);text-transform:uppercase}
+#wxMsg{color:var(--text2);line-height:1.4;word-break:break-all}
+#wxStatus.done #wxMsg{color:#16a34a}
+#wxStatus.err #wxMsg{color:var(--red)}
+.wx-spinner{display:inline-block;width:10px;height:10px;border:2px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:wxspin .7s linear infinite;margin-right:5px;vertical-align:middle}
+@keyframes wxspin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 14 14"><path d="M1 10 Q3 2 7 2 Q11 2 13 10"/><circle cx="7" cy="11.5" r="1.5" fill="#fff" stroke="none"/></svg>
+  </div>
+  <h1>跟读练习</h1>
+  <small>Shadowing App</small>
+  <div style="flex:1"></div>
+  <button class="btn-upload-trigger" id="btnChangeSrt">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    导入字幕
+  </button>
+  <button class="btn-upload-trigger" id="btnChangeJson" title="导入 WhisperX JSON（逐词精确时间戳）">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    逐词JSON
+  </button>
+  <button class="btn-upload-trigger" id="btnDownloadJson" title="下载当前字幕为 JSON 文件" style="display:none">
+    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    保存JSON
+  </button>
+  <button class="btn-upload-trigger" id="btnChangeFile">
+    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    换音频
+  </button>
+  <input type="file" id="fileInput" accept="audio/*">
+  <input type="file" id="srtInput" accept=".srt">
+  <input type="file" id="jsonInput" accept=".json">
+</header>
+
+<!-- Upload overlay -->
+<div class="upload-overlay" id="uploadOverlay">
+  <div class="upload-box">
+    <div class="upload-zone" id="uploadZone">
+      <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+      <p>点击上传音频文件</p>
+      <small>MP3 · WAV · M4A · OGG · FLAC</small>
+    </div>
+    <p class="upload-hint">导入字幕（.srt 或 WhisperX JSON），再上传音频开始练习</p>
+    <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+      <div style="display:flex;gap:8px">
+        <div id="srtOverlayLabel" style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 12px;border:1.5px dashed var(--border2);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text2);transition:border-color .15s">
+          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <span>上传 .srt 字幕</span>
+        </div>
+        <div id="jsonOverlayLabel" style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 12px;border:1.5px dashed var(--border2);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text2);transition:border-color .15s" title="无 SRT 时直接作为字幕源；已有 SRT 时叠加逐词时间戳">
+          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;flex-shrink:0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span>WhisperX JSON</span>
+        </div>
+      </div>
+      <p id="srtHint" style="font-size:11px;color:var(--text3);text-align:center;margin-top:6px;min-height:14px"></p>
+    </div>
+  </div>
+</div>
+
+<main>
+  <!-- Left: subtitle list / favorites -->
+  <div class="panel-left">
+    <div class="panel-left-header" style="flex-direction:column;align-items:stretch">
+      <div style="display:flex;align-items:center;gap:6px">
+        <h2 style="flex:1">字幕列表</h2>
+        <button class="btn-expr-filter" id="btnExprFilter" title="只显示含有高价值表达的句子">★ 精华句</button>
+        <button class="btn-expr-manage" id="btnExprManage" title="管理自定义表达">＋ 表达</button>
+      </div>
+      <input class="subtitle-search" id="searchBox" placeholder="搜索字幕..." type="search">
+    </div>
+    <div class="panel-tabs">
+      <button class="panel-tab active" id="tabSubs">字幕</button>
+      <button class="panel-tab" id="tabFavs">★ 收藏 <span id="favCount"></span></button>
+    </div>
+    <div class="subtitle-list" id="subList"></div>
+    <!-- Expression manager panel -->
+    <div id="exprManagerWrap">
+      <div class="em-title">
+        <span>自定义表达</span>
+        <div style="display:flex;gap:5px;align-items:center">
+          <span id="exprManagerCount" style="font-size:10px;font-weight:400;color:var(--text3)"></span>
+          <button class="btn-expr-bulk" id="btnExprBulk" title="批量导入（每行一个表达）">批量导入</button>
+        </div>
+      </div>
+      <div id="userExprList"></div>
+      <div class="expr-add-row">
+        <input id="exprAddInput" placeholder="输入表达，如：play out" maxlength="80">
+        <button class="btn-expr-add" id="btnExprAdd">添加</button>
+      </div>
+      <div id="exprBulkWrap">
+        <textarea id="exprBulkInput" placeholder="每行一个表达，例如：&#10;play out&#10;come to terms with&#10;catch up with someone"></textarea>
+        <div style="display:flex;gap:5px;margin-top:5px;justify-content:flex-end">
+          <button class="btn-bulk-cancel" id="btnBulkCancel">取消</button>
+          <button class="btn-bulk-confirm" id="btnBulkConfirm">导入</button>
+        </div>
+      </div>
+      <div style="margin-top:8px;border-top:1px solid var(--border2);padding-top:7px">
+        <div style="font-size:10px;color:var(--text3);display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span>已屏蔽 <span id="dismissedCount"></span></span>
+          <button class="btn-expr-bulk" id="btnExportDismissed" title="复制屏蔽列表">导出反馈</button>
+        </div>
+        <div id="dismissedList" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+      </div>
+    </div>
+    <div class="fav-list" id="favList" style="display:none"></div>
+  </div>
+
+  <!-- Right: player + record -->
+  <div class="panel-right">
+
+    <!-- Sentence display -->
+    <div class="sentence-display">
+      <div class="sentence-nav">
+        <button class="btn-nav" id="btnPrev" disabled>
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="sentence-counter" id="sentCounter">— / —</span>
+        <button class="btn-nav" id="btnNext" disabled>
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <span class="sentence-time" id="sentTime"></span>
+      </div>
+      <div class="sentence-text empty" id="sentText">请先上传音频，点击左侧任意一句开始练习</div>
+      <div id="sentExprHits" style="display:none"></div>
+      <div class="action-row">
+        <button class="btn-action primary" id="btnPlaySent">
+          <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          播放这句
+        </button>
+        <button class="btn-action" id="btnLoopSent">
+          <svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          循环这句
+        </button>
+        <button class="btn-action" id="btnRecordBtn">
+          <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+          <span id="recBtnLabel">录音</span>
+        </button>
+        <button class="btn-action" id="btnStar" title="收藏这句话">
+          <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <span id="starLabel">收藏</span>
+        </button>
+        <span id="recTimerSpan" style="font-size:13px;color:var(--text2);align-self:center;font-variant-numeric:tabular-nums"></span>
+      </div>
+    </div>
+
+    <!-- Mini player -->
+    <div class="mini-player">
+      <div class="wave-wrap" id="waveWrap">
+        <canvas id="wc"></canvas>
+        <div class="wave-loop" id="waveLoop"></div>
+        <div class="wave-prog" id="waveProg"></div>
+        <div class="w-head" id="wHead"></div>
+      </div>
+      <div class="time-row">
+        <span id="tCur">0:00</span>
+        <span id="tTot">0:00</span>
+      </div>
+      <div class="player-row">
+        <button class="btn-rnd" id="btnB5">
+          <svg viewBox="0 0 24 24"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+        </button>
+        <button class="btn-play-main" id="btnPlay">
+          <svg id="playIco" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </button>
+        <button class="btn-rnd" id="btnF5">
+          <svg viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+        </button>
+        <div class="sp"></div>
+        <span class="spd-lbl">速度</span>
+        <select class="spd" id="spdSel">
+          <option value="0.5">0.5×</option>
+          <option value="0.7">0.7×</option>
+          <option value="0.85">0.85×</option>
+          <option value="1" selected>1×</option>
+          <option value="1.2">1.2×</option>
+          <option value="1.5">1.5×</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Recordings + compare -->
+    <div class="recordings-panel">
+
+      <!-- Compare Visualization — shown when a sentence is selected -->
+      <div id="cmpVizWrap" style="display:none;margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div class="section-title" style="margin-bottom:0">
+            <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            语速节奏对比图
+          </div>
+          <div style="display:flex;gap:14px;font-size:11px;color:var(--text2)">
+            <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:12px;height:3px;background:var(--blue);border-radius:2px"></span>原声</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:12px;height:3px;background:#e07c24;border-radius:2px"></span>我的录音</span>
+          </div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px">
+          <canvas id="cmpLyricsCanvas" style="width:100%;height:48px;display:block;border-radius:3px;margin-bottom:8px"></canvas>
+          <div style="font-size:10px;font-weight:600;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em">语速节奏（能量包络）</div>
+          <canvas id="cmpEnvCanvas" style="width:100%;height:130px;display:block;border-radius:4px"></canvas>
+          <div id="wordChipsWrap">
+            <div id="wordChips"></div>
+            <div id="wordChipHint">拖动单词到上方波形图，标注你感受到的停顿位置 · 点击已标注的词可删除</div>
+          </div>
+          <div id="btnPlayCmpWrap" style="display:none;margin-top:10px">
+            <button class="btn-cmp" id="btnPlayCmp" style="width:100%;justify-content:center;gap:7px">
+              <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              播放对比（左耳=原声 · 右耳=我的录音）
+            </button>
+          </div>
+        </div>
+        <p id="cmpVizNote" style="font-size:11px;color:var(--text3);margin-top:6px;text-align:center;min-height:16px"></p>
+      </div>
+
+      <div class="section-title">
+        <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+        我的录音
+      </div>
+      <div id="recList"><div class="rec-empty">还没有录音 — 选择一句话，点击「录音」按钮开始</div></div>
+
+      <div class="section-title" style="margin-top:18px">
+        <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><polyline points="8 7 3 12 8 17"/><polyline points="16 7 21 12 16 17"/></svg>
+        对比回听
+      </div>
+      <div class="compare-grid">
+        <div class="cmp-col">
+          <div class="cmp-lbl">原声</div>
+          <button class="btn-cmp" id="btnCmpOrig">
+            <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>播放当前句原声
+          </button>
+        </div>
+        <div class="cmp-col">
+          <div class="cmp-lbl">我的录音</div>
+          <select class="rec-sel" id="cmpSel"><option value="">— 选择录音 —</option></select>
+          <button class="btn-cmp" id="btnCmpRec">
+            <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>播放我的录音
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- WhisperX 拖拽遮罩（需在 script 前，否则 getElementById 拿到 null） -->
+<div id="wxDragOverlay">
+  <div class="wx-box">
+    <div class="wx-drop-icon">🎵</div>
+    <div class="wx-drop-title">松手即可处理</div>
+    <div class="wx-drop-sub">音频 → 自动转录（需运行 whisperx_server.py）<br>.srt / .json → 直接加载</div>
+  </div>
+</div>
+<!-- 转录进度浮层 -->
+<div id="wxStatus">
+  <div class="wx-label">WhisperX</div>
+  <div id="wxMsg"></div>
+</div>
+
+<script>
+let SUBS = [];
+</script>
+
+<script>
+/* ══════════════════════════════
+   State
+══════════════════════════════ */
+let audio = null;
+let waveData = [];
+let curIdx = -1;       // index into SUBS
+let isLooping = false;
+let _favPracticeMode = false; // right panel loaded from a fav clip
+let customMarkers = []; // [{word, frac}, ...] user-placed timing marks
+let exprFilterOn = false;
+let currentAudioFilename = '';  // 用于字幕缓存 key
+let userExprs = []; // [{pat, label}] from localStorage 'shadowing-exprs'
+let dismissedExprs = new Set(); // patterns the user dismissed, from localStorage 'shadowing-dismissed'
+let _savedPracticeState = null; // { subs, filteredSubs, curIdx, audio, origAudioBuffer, waveData }
+let recordings = [];
+let mediaRec = null;
+let recChunks = [];
+let isRec = false;
+let micStream = null; // 缓存麦克风 stream，避免每次都重新请求权限
+let recInt = null;
+let recSecs = 0;
+let loopCheck = null;
+let filteredSubs = [...SUBS];
+let origAudioBuffer = null;
+let _decodeWaveToken = 0;
+let _originalAudioFile = null; // 保存用户最后上传的原始音频文件，用于跟读退出后自动重载
+let analysisActx = null;
+let vizToken = 0;
+let cmpOrigSeg = null, cmpRecSeg = null;
+let cmpOrigSr = 44100, cmpRecSr = 44100;
+let cmpEnv1 = null, cmpEnv2 = null;
+let cmpPitch1 = null, cmpPitch2 = null;
+let cmpSelA = -1, cmpSelB = -1;
+let cmpOrigDur = 0, cmpRecDur = 0;
+let cmpIsDragging = false;
+let cmpPlayhead = -1, playRafId = null;
+let selPlayCtx = null;
+let liveEnvData = [], livePitchData = [];
+let liveRecStartTime = 0, liveRecRafId = null;
+let liveAnalyser = null, liveActx = null;
+let cmpText = '';
+let cmpWordFracs = null;
+
+/* ══════════════════════════════
+   DOM
+══════════════════════════════ */
+const uploadOverlay = document.getElementById('uploadOverlay');
+const uploadZone    = document.getElementById('uploadZone');
+const fileInput     = document.getElementById('fileInput');
+const btnChangeFile = document.getElementById('btnChangeFile');
+const subList       = document.getElementById('subList');
+const searchBox     = document.getElementById('searchBox');
+const sentText      = document.getElementById('sentText');
+const sentCounter   = document.getElementById('sentCounter');
+const sentTime      = document.getElementById('sentTime');
+const btnPrev       = document.getElementById('btnPrev');
+const btnNext       = document.getElementById('btnNext');
+const btnPlaySent   = document.getElementById('btnPlaySent');
+const btnLoopSent   = document.getElementById('btnLoopSent');
+const btnRecordBtn  = document.getElementById('btnRecordBtn');
+const recBtnLabel   = document.getElementById('recBtnLabel');
+const recTimerSpan  = document.getElementById('recTimerSpan');
+const waveWrap      = document.getElementById('waveWrap');
+const wCanvas       = document.getElementById('wc');
+const waveProg      = document.getElementById('waveProg');
+const waveLoop      = document.getElementById('waveLoop');
+const wHead         = document.getElementById('wHead');
+const tCur          = document.getElementById('tCur');
+const tTot          = document.getElementById('tTot');
+const btnPlay       = document.getElementById('btnPlay');
+const playIco       = document.getElementById('playIco');
+const btnB5         = document.getElementById('btnB5');
+const btnF5         = document.getElementById('btnF5');
+const spdSel        = document.getElementById('spdSel');
+const recList       = document.getElementById('recList');
+const cmpSel        = document.getElementById('cmpSel');
+const btnCmpOrig    = document.getElementById('btnCmpOrig');
+const btnCmpRec     = document.getElementById('btnCmpRec');
+
+/* ══════════════════════════════
+   Helpers
+══════════════════════════════ */
+function fmt(s) {
+  s = Math.max(0, +s || 0);
+  const m = Math.floor(s/60), sec = Math.floor(s%60);
+  return m + ':' + (sec<10?'0':'') + sec;
+}
+function msToS(ms) { return ms / 1000; }
+
+/* ══════════════════════════════
+   Expression / Phrase database
+══════════════════════════════ */
+const BUILTIN_EXPRS = [
+  // [pattern, score, category]
+  // ── 叙事展开 (Narrative / how things unfolded) ──
+  ['play out',4,'叙事展开'],['played out',4,'叙事展开'],['pan out',4,'叙事展开'],
+  ['as it turned out',4,'叙事展开'],['it turns out',4,'叙事展开'],
+  ['turns out',3,'叙事展开'],['turned out to be',4,'叙事展开'],
+  ['all the way to',3,'叙事展开'],
+  ['next thing you know',5,'叙事展开'],
+  ['out of nowhere',4,'叙事展开'],['before i knew it',5,'叙事展开'],
+  ['lo and behold',5,'叙事展开'],['fast forward',4,'叙事展开'],
+  ['by this point',4,'叙事展开'],['up to that point',4,'叙事展开'],
+  ['that was the moment',4,'叙事展开'],['that was when',3,'叙事展开'],
+  ['that was the turning point',5,'叙事展开'],['came at the perfect moment',5,'叙事展开'],
+  ['right in the middle of',4,'叙事展开'],['unfolded',4,'叙事展开'],
+  // ── 情感经历 (Emotional experience / going through things) ──
+  ['going through',3,'情感经历'],['went through',4,'情感经历'],['been through',4,'情感经历'],
+  ['go through it',5,'情感经历'],
+  ['work through',4,'情感经历'],['working through',4,'情感经历'],
+  ['get through',3,'情感经历'],['pull through',4,'情感经历'],
+  ['sit with',4,'情感经历'],['sit with that',5,'情感经历'],
+  ['come to terms with',5,'情感经历'],['make peace with',5,'情感经历'],
+  ['sense of letdown',5,'情感经历'],['a sense of letdown',5,'情感经历'],
+  ['sense of closure',5,'情感经历'],['find closure',4,'情感经历'],
+  ['some closure',4,'情感经历'],
+  ['trial of the soul',5,'情感经历'],['a trial of',4,'情感经历'],
+  ['took a toll',4,'情感经历'],['take a toll on',4,'情感经历'],
+  ['weigh on',3,'情感经历'],['face up to',4,'情感经历'],
+  ['spiritual experience',4,'情感经历'],
+  // ── 人际关系 (Social / relational expressions) ──
+  ['reach out to',4,'人际关系'],
+  ['catch up',4,'人际关系'],['catch up with',4,'人际关系'],['caught up with',4,'人际关系'],
+  ['check in on',4,'人际关系'],['made up',4,'人际关系'],['make up',4,'人际关系'],
+  ['reconcile',4,'人际关系'],['reconciliation',4,'人际关系'],
+  ['patch things up',5,'人际关系'],['clear the air',5,'人际关系'],
+  ['hard feelings',4,'人际关系'],
+  ['fault her for',5,'人际关系'],['fault him for',5,'人际关系'],
+  ['drift apart',4,'人际关系'],['fell out',4,'人际关系'],
+  ['stay in touch',3,'人际关系'],['on speaking terms',5,'人际关系'],
+  ['estranged',4,'人际关系'],['excuse myself',4,'人际关系'],
+  // ── 顿悟领悟 (Realization / insight) ──
+  ['dawned on me',5,'顿悟领悟'],['it dawned on me',5,'顿悟领悟'],
+  ['hit me',4,'顿悟领悟'],['it hit me',5,'顿悟领悟'],
+  ['something clicked',4,'顿悟领悟'],['it clicked',4,'顿悟领悟'],
+  ['came to realize',4,'顿悟领悟'],['came to understand',4,'顿悟领悟'],
+  ['it struck me',5,'顿悟领悟'],['struck me that',5,'顿悟领悟'],
+  ['see it for what it is',5,'顿悟领悟'],['opened my eyes',4,'顿悟领悟'],
+  ['put two and two together',5,'顿悟领悟'],
+  ['wrap my head around',5,'顿悟领悟'],['wrap your head around',5,'顿悟领悟'],
+  ['escaping me',5,'顿悟领悟'],['the word escapes me',5,'顿悟领悟'],
+  // ── 决策权衡 (Decision-making / deliberation) ──
+  ['spur of the moment',5,'决策权衡'],['well thought out',5,'决策权衡'],
+  ['carefully thought out',5,'决策权衡'],
+  ['weigh the pros and cons',5,'决策权衡'],['weighing out the pros and cons',5,'决策权衡'],
+  ['thought really hard',4,'决策权衡'],['think long and hard',4,'决策权衡'],
+  ['in hindsight',4,'决策权衡'],['looking back on it',4,'决策权衡'],['looking back',3,'决策权衡'],
+  ['on a whim',4,'决策权衡'],['go back and forth',4,'决策权衡'],
+  ['carefully considered',4,'决策权衡'],['on reflection',4,'决策权衡'],
+  ['flippant',4,'决策权衡'],
+  // ── 时间叙事 (Time / narrative anchors) ──
+  ['at that moment',4,'时间叙事'],
+  ['from that point on',4,'时间叙事'],['from that day on',4,'时间叙事'],
+  ['over the years',3,'时间叙事'],['little by little',4,'时间叙事'],
+  ["it wasn't until",4,'时间叙事'],['right then and there',5,'时间叙事'],
+  ['not until then',4,'时间叙事'],['at some point',3,'时间叙事'],
+  // ── 立场观点 (Stance / personal takes) ──
+  ['to be fair',4,'立场观点'],['to be honest',3,'立场观点'],
+  ['i have to say',3,'立场观点'],['i will say',3,'立场观点'],
+  ['the thing about it',4,'立场观点'],
+  ['what struck me',5,'立场观点'],['funny thing is',4,'立场观点'],
+  ['if anything',4,'立场观点'],["if i'm being honest",4,'立场观点'],
+  ['ironically',4,'立场观点'],['and yet',4,'立场观点'],['even so',4,'立场观点'],
+  ['having said that',4,'立场观点'],['that being said',4,'立场观点'],
+  ['i probably would have done the same',5,'立场观点'],
+];
+
+function scoreSubs() {
+  const allExprs = [
+    ...BUILTIN_EXPRS.filter(([pat]) => !dismissedExprs.has(pat)),
+    ...userExprs.map(e => [e.pat.toLowerCase(), 3, '自定义']).filter(([pat]) => !dismissedExprs.has(pat)),
+  ];
+  for (const s of SUBS) {
+    const lower = s.text.toLowerCase();
+    const hits = allExprs.filter(([pat]) => lower.includes(pat));
+    s._exprScore = hits.reduce((sum, [, sc]) => sum + sc, 0);
+    s._exprHits  = hits;
+  }
+}
+
+function loadUserExprs() {
+  try { userExprs = JSON.parse(localStorage.getItem('shadowing-exprs') || '[]'); } catch(e) { userExprs = []; }
+}
+
+function saveUserExprs() {
+  localStorage.setItem('shadowing-exprs', JSON.stringify(userExprs));
+}
+
+function loadDismissed() {
+  try { dismissedExprs = new Set(JSON.parse(localStorage.getItem('shadowing-dismissed') || '[]')); } catch(e) { dismissedExprs = new Set(); }
+}
+
+function saveDismissed() {
+  localStorage.setItem('shadowing-dismissed', JSON.stringify([...dismissedExprs]));
+}
+
+function renderUserExprList() {
+  const wrap = document.getElementById('userExprList');
+  const cnt  = document.getElementById('exprManagerCount');
+  if (!wrap) return;
+  cnt.textContent = userExprs.length ? `${userExprs.length} 条自定义` : '';
+  if (!userExprs.length) {
+    wrap.innerHTML = '<span style="font-size:11px;color:var(--text3)">暂无自定义表达</span>';
+    return;
+  }
+  wrap.innerHTML = userExprs.map((e, i) =>
+    `<span class="user-expr-chip" data-i="${i}">${e.pat}<button title="删除">×</button></span>`
+  ).join('');
+  wrap.querySelectorAll('.user-expr-chip button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = +btn.closest('.user-expr-chip').dataset.i;
+      userExprs.splice(i, 1);
+      saveUserExprs();
+      scoreSubs();
+      renderUserExprList();
+      renderSubList(searchBox.value);
+    });
+  });
+}
+
+function updateDismissedPanel() {
+  const el = document.getElementById('dismissedList');
+  if (!el) return;
+  const cnt = document.getElementById('dismissedCount');
+  const arr = [...dismissedExprs];
+  if (cnt) cnt.textContent = arr.length ? `${arr.length} 条` : '';
+  el.innerHTML = arr.length
+    ? arr.map(p => `<span class="user-expr-chip" data-dp="${p}">${p}<button title="取消屏蔽">↩</button></span>`).join('')
+    : '<span style="font-size:11px;color:var(--text3)">暂无已屏蔽表达</span>';
+  el.querySelectorAll('.user-expr-chip button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      dismissedExprs.delete(btn.closest('.user-expr-chip').dataset.dp);
+      saveDismissed(); scoreSubs(); updateDismissedPanel();
+      renderSubList(searchBox.value);
+    });
+  });
+}
+
+function showExprHits(realIdx) {
+  const el = document.getElementById('sentExprHits');
+  if (!el) return;
+  const s = SUBS[realIdx];
+  const hits = s && s._exprHits;
+  if (!hits || !hits.length) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  el.innerHTML = '<span style="margin-right:3px;color:var(--text3)">表达：</span>' +
+    hits.map(([pat,,cat]) =>
+      `<span class="expr-hit-badge cat-${cat}" title="${cat}">${pat}<button class="expr-dismiss-btn" data-pat="${pat}" title="屏蔽此表达">×</button></span>`
+    ).join('');
+  el.querySelectorAll('.expr-dismiss-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      dismissedExprs.add(btn.dataset.pat);
+      saveDismissed(); scoreSubs(); updateDismissedPanel();
+      renderSubList(searchBox.value);
+      showExprHits(realIdx);
+    });
+  });
+}
+
+/* ══════════════════════════════
+   Subtitle list
+══════════════════════════════ */
+function renderSubList(filter='') {
+  const q = filter.toLowerCase();
+  filteredSubs = SUBS.filter(s => {
+    if (q && !s.text.toLowerCase().includes(q)) return false;
+    if (exprFilterOn && !(s._exprScore > 0)) return false;
+    return true;
+  });
+  const banner = _favPracticeMode
+    ? `<div class="fav-practice-banner"><strong>★ 收藏跟读模式</strong><button class="btn-exit-practice" id="btnExitPractice">退出练习</button></div>`
+    : '';
+  subList.innerHTML = banner + filteredSubs.map((s, i) => {
+    const realIdx = SUBS.indexOf(s);
+    const cls = realIdx === curIdx ? (audio && !audio.paused ? 'playing' : 'active') : '';
+    const score = s._exprScore || 0;
+    const exprCls = score >= 6 ? 'expr-high' : score >= 3 ? 'expr-mid' : score >= 1 ? 'expr-low' : '';
+    const dotCls  = score >= 6 ? 'hi' : score >= 3 ? 'md' : 'lo';
+    const dotTip  = score > 0 && s._exprHits ? s._exprHits.slice(0,3).map(h=>h[0]).join(' · ') : '';
+    const dot = score > 0 ? `<span class="sub-expr-dot ${dotCls}" title="${dotTip}"></span>` : '';
+    return `<div class="sub-item ${cls} ${exprCls}" data-real="${realIdx}" data-fi="${i}">
+      <span class="sub-num">${realIdx+1}</span>
+      <div class="sub-body">
+        <div class="sub-text">${s.text}</div>
+        <div class="sub-time" style="display:flex;align-items:center">${s.start.slice(0,8)} → ${s.end.slice(0,8)}${dot}</div>
+      </div>
+    </div>`;
+  }).join('');
+  subList.querySelectorAll('.sub-item').forEach(el => {
+    el.addEventListener('click', () => selectSentence(+el.dataset.real));
+  });
+  if (typeof updateDownloadBtn === 'function') updateDownloadBtn();
+  const exitBtn = document.getElementById('btnExitPractice');
+  if (exitBtn) exitBtn.addEventListener('click', () => {
+    _favPracticeMode = false;
+    if (audio) { audio.pause(); audio.src = ''; audio = null; }
+    _savedPracticeState = null;
+    _decodeWaveToken++; // 作废跟读期间遗留的 decodeWave 回调
+    // 完全重置为干净状态
+    SUBS = []; filteredSubs = []; curIdx = -1;
+    origAudioBuffer = null; waveData = [];
+    drawWave();
+    sentText.textContent = '请点击左侧任意一句开始练习';
+    sentText.classList.add('empty');
+    sentCounter.textContent = '— / —'; sentTime.textContent = '';
+    renderSubList();
+    // 后台自动重载原始音频（会恢复字幕缓存 + 波形）
+    if (_originalAudioFile) {
+      loadFile(_originalAudioFile);
+    } else {
+      uploadOverlay.style.display = 'flex';
+    }
+  });
+}
+
+function scrollToActive() {
+  const el = subList.querySelector('.sub-item.active, .sub-item.playing');
+
+  if (!el) return;
+
+  const container = subList;
+
+  const elTop = el.offsetTop;
+  const elBottom = elTop + el.offsetHeight;
+
+  const viewTop = container.scrollTop;
+  const viewBottom = viewTop + container.clientHeight;
+
+  // 只有元素超出可视区域才滚动
+  if (elTop < viewTop || elBottom > viewBottom) {
+    container.scrollTo({
+      top: elTop - 100,
+      behavior: 'smooth'
+    });
+  }
+}
+
+searchBox.addEventListener('input', () => renderSubList(searchBox.value));
+
+/* ══════════════════════════════
+   Select sentence
+══════════════════════════════ */
+function selectSentence(realIdx) {
+  curIdx = realIdx;
+  const s = SUBS[realIdx];
+  sentText.textContent = s.text;
+  sentText.classList.remove('empty');
+  sentCounter.textContent = (realIdx+1) + ' / ' + SUBS.length;
+  sentTime.textContent = fmt(msToS(s.startMs)) + ' → ' + fmt(msToS(s.endMs));
+  btnPrev.disabled = realIdx === 0;
+  btnNext.disabled = realIdx === SUBS.length-1;
+  renderSubList(searchBox.value);
+  scrollToActive();
+  updateLoopRegion();
+  // stop any ongoing loop
+  stopLoop();
+  isLooping = false;
+  btnLoopSent.classList.remove('active');
+  btnLoopSent.innerHTML = `<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>循环这句`;
+  renderOrigChart();
+  updateStarBtn();
+  showExprHits(realIdx);
+}
+
+btnPrev.addEventListener('click', () => { if (curIdx > 0) selectSentence(curIdx-1); });
+btnNext.addEventListener('click', () => { if (curIdx < SUBS.length-1) selectSentence(curIdx+1); });
+
+/* ══════════════════════════════
+   字幕缓存（localStorage 按文件名存储）
+══════════════════════════════ */
+const SUBS_CACHE_PREFIX = 'shadowing-subs-';
+function saveSubsCache() {
+  if (!currentAudioFilename || !SUBS.length) return;
+  const key = SUBS_CACHE_PREFIX + currentAudioFilename;
+  const data = SUBS.map(s => {
+    const o = { start: s.start, end: s.end, startMs: s.startMs, endMs: s.endMs, text: s.text };
+    if (s.wordFracs) o.wordFracs = Array.from(s.wordFracs);
+    return o;
+  });
+  try { localStorage.setItem(key, JSON.stringify(data)); }
+  catch(e) { console.warn('[缓存] 写入失败（存储空间不足）', e.message); }
+}
+function loadSubsCache(fname) {
+  try {
+    const raw = localStorage.getItem(SUBS_CACHE_PREFIX + fname);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    return data.map(s => { if (s.wordFracs) s.wordFracs = new Float32Array(s.wordFracs); return s; });
+  } catch(e) { return null; }
+}
+
+/* ══════════════════════════════
+   Upload
+══════════════════════════════ */
+function loadFile(file) {
+  if (!file || !file.type.startsWith('audio/')) { alert('请选择有效的音频文件'); return; }
+  // 重置字幕状态 + 读取缓存（仅限命名文件；Blob 片段如收藏跟读不重置）
+  if (file.name) {
+    currentAudioFilename = file.name;
+    _originalAudioFile = file; // 记录原始文件供退出跟读时重载
+    SUBS = []; filteredSubs = []; curIdx = -1;
+    renderSubList();
+    const _cached = loadSubsCache(file.name);
+    if (_cached && _cached.length) {
+      SUBS = _cached; filteredSubs = [...SUBS];
+      scoreSubs(); renderSubList();
+      const hint = document.getElementById('srtHint');
+      if (hint) hint.textContent = `✓ 已自动载入缓存字幕 ${SUBS.length} 句`;
+    }
+  }
+  if (audio) { audio.pause(); audio.src=''; audio=null; }
+  const url = URL.createObjectURL(file);
+  audio = new Audio(url);
+  audio.addEventListener('loadedmetadata', () => {
+    tTot.textContent = fmt(audio.duration);
+    uploadOverlay.style.display='none';
+    decodeWave(file);
+    if (curIdx >= 0) updateLoopRegion();
+  });
+  audio.addEventListener('timeupdate', onTimeUpdate);
+  audio.addEventListener('play', () => {
+    playIco.innerHTML='<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+    renderSubList(searchBox.value);
+  });
+  audio.addEventListener('pause', () => {
+    playIco.innerHTML='<polygon points="5 3 19 12 5 21 5 3"/>';
+    renderSubList(searchBox.value);
+  });
+  audio.addEventListener('ended', () => {
+    playIco.innerHTML='<polygon points="5 3 19 12 5 21 5 3"/>';
+  });
+  spdSel.onchange = () => { if (audio) audio.playbackRate = parseFloat(spdSel.value); redrawCharts(); };
+}
+
+uploadZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => {
+  _favPracticeMode = false;
+  if (!fileInput.files[0]) return;
+  // 记录上传音频前是否已有字幕（手动导入 JSON）
+  const savedSubs = SUBS.length > 0 ? [...SUBS] : null;
+  loadFile(fileInput.files[0]);
+  // loadFile 会清空 SUBS，若缓存里也没有，则恢复手动加载的字幕
+  if (savedSubs && !SUBS.length) {
+    SUBS = savedSubs; filteredSubs = [...SUBS];
+    renderSubList();
+  }
+  // 只有没有字幕时才触发自动转录
+  if (!SUBS.length && window.wxTryTranscribe) window.wxTryTranscribe(fileInput.files[0]);
+});
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault(); uploadZone.classList.remove('drag-over');
+  // loadFile 由全局 document.drop 处理；此处只做视觉清理
+});
+btnChangeFile.addEventListener('click', () => fileInput.click());
+
+/* ══════════════════════════════
+   Custom word markers (drag-to-chart)
+══════════════════════════════ */
+function saveCustomMarkers() {
+  if (!cmpText) return;
+  const key = 'shadowing-marks-' + encodeURIComponent(cmpText.trim().slice(0, 80));
+  if (customMarkers.length > 0) localStorage.setItem(key, JSON.stringify(customMarkers));
+  else localStorage.removeItem(key);
+}
+function loadCustomMarkers() {
+  if (!cmpText) { customMarkers = []; return; }
+  const key = 'shadowing-marks-' + encodeURIComponent(cmpText.trim().slice(0, 80));
+  try { customMarkers = JSON.parse(localStorage.getItem(key)) || []; } catch(e) { customMarkers = []; }
+}
+function renderWordChips() {
+  const wrap = document.getElementById('wordChipsWrap');
+  const chips = document.getElementById('wordChips');
+  if (!wrap || !chips) return;
+  if (!cmpText) { wrap.style.display = 'none'; return; }
+  const words = cmpText.trim().split(/\s+/);
+  const placed = new Set(customMarkers.map(m => m.word));
+  chips.innerHTML = '';
+  words.forEach((w, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'word-chip' + (placed.has(w) ? ' placed' : '');
+    chip.textContent = w;
+    chip.draggable = true;
+    chip.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', JSON.stringify({word: w, idx: i}));
+    });
+    if (placed.has(w)) {
+      chip.title = '点击删除标注';
+      chip.addEventListener('click', () => {
+        customMarkers = customMarkers.filter(m => m.word !== w);
+        saveCustomMarkers(); renderWordChips(); redrawCharts();
+      });
+    }
+    chips.appendChild(chip);
+  });
+  wrap.style.display = 'block';
+}
+// Wire drag-drop on the env canvas
+(function() {
+  const ec = document.getElementById('cmpEnvCanvas');
+  if (!ec) return;
+  ec.addEventListener('dragover', e => { e.preventDefault(); ec.classList.add('cmp-env-drop-active'); });
+  ec.addEventListener('dragleave', () => ec.classList.remove('cmp-env-drop-active'));
+  ec.addEventListener('drop', e => {
+    e.preventDefault(); ec.classList.remove('cmp-env-drop-active');
+    let data; try { data = JSON.parse(e.dataTransfer.getData('text/plain')); } catch(err) { return; }
+    if (!data || !data.word) return;
+    const rect = ec.getBoundingClientRect();
+    const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    customMarkers = customMarkers.filter(m => m.word !== data.word);
+    customMarkers.push({word: data.word, frac});
+    saveCustomMarkers(); renderWordChips(); redrawCharts();
+  });
+})();
+
+/* ══════════════════════════════
+   Waveform
+══════════════════════════════ */
+function drawWave() {
+  if (!waveData.length) return;
+  const dpr = window.devicePixelRatio||1;
+  const W = waveWrap.offsetWidth, H = waveWrap.offsetHeight;
+  wCanvas.width=W*dpr; wCanvas.height=H*dpr;
+  wCanvas.style.width=W+'px'; wCanvas.style.height=H+'px';
+  const ctx = wCanvas.getContext('2d');
+  ctx.scale(dpr,dpr); ctx.clearRect(0,0,W,H);
+  const dark = window.matchMedia('(prefers-color-scheme:dark)').matches;
+  ctx.fillStyle = dark ? 'rgba(90,159,212,0.55)' : 'rgba(24,95,165,0.38)';
+  const bw=2, gap=1.5, tot=bw+gap;
+  const cnt = Math.floor(W/tot);
+  for (let i=0; i<cnt; i++) {
+    const idx = Math.floor((i/cnt)*waveData.length);
+    const h = Math.max(2, waveData[idx]*H*0.88);
+    ctx.fillRect(i*tot, (H-h)/2, bw, h);
+  }
+}
+
+function getActx() {
+  if (!analysisActx || analysisActx.state === 'closed') {
+    analysisActx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return analysisActx;
+}
+
+function decodeWave(file) {
+  const myToken = ++_decodeWaveToken;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const actx = getActx();
+    actx.decodeAudioData(e.target.result.slice(0)).then(buf => {
+      if (myToken !== _decodeWaveToken) return; // 已退出跟读，丢弃此次解码结果
+      origAudioBuffer = buf;
+      const ch = buf.getChannelData(0);
+      const N=800, block=Math.floor(ch.length/N);
+      waveData=[];
+      for (let i=0;i<N;i++) {
+        let mx=0;
+        for (let j=0;j<block;j++){const v=Math.abs(ch[i*block+j]);if(v>mx)mx=v;}
+        waveData.push(mx);
+      }
+      const peak=Math.max(...waveData);
+      if(peak>0) waveData=waveData.map(v=>v/peak);
+      drawWave();
+    }).catch(()=>{
+      waveData=Array.from({length:800},()=>0.25+Math.random()*0.5);
+      drawWave();
+    });
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function updateLoopRegion() {
+  if (!audio || !audio.duration || curIdx<0) { waveLoop.style.display='none'; return; }
+  const s = SUBS[curIdx];
+  const dur = audio.duration*1000;
+  waveLoop.style.display='block';
+  waveLoop.style.left = (s.startMs/dur*100)+'%';
+  waveLoop.style.width = ((s.endMs-s.startMs)/dur*100)+'%';
+}
+
+/* ══════════════════════════════
+   Playback
+══════════════════════════════ */
+function onTimeUpdate() {
+  if (!audio||!audio.duration) return;
+  const pct = audio.currentTime/audio.duration;
+  waveProg.style.width=(pct*100)+'%';
+  wHead.style.left=(pct*100)+'%';
+  tCur.textContent=fmt(audio.currentTime);
+  // auto-highlight subtitle
+  const ms = audio.currentTime*1000;
+  const newIdx = SUBS.findIndex(s => ms >= s.startMs && ms <= s.endMs);
+  if (newIdx>=0 && newIdx!==curIdx) { selectSentence(newIdx); }
+  // loop check
+  if (isLooping && curIdx>=0) {
+    const s = SUBS[curIdx];
+    if (audio.currentTime*1000 >= s.endMs) audio.currentTime = msToS(s.startMs);
+  }
+}
+
+waveWrap.addEventListener('click', e => {
+  if (!audio||!audio.duration) return;
+  const r=waveWrap.getBoundingClientRect();
+  audio.currentTime=((e.clientX-r.left)/r.width)*audio.duration;
+});
+
+btnPlay.addEventListener('click', () => { if (!audio) return; audio.paused?audio.play():audio.pause(); });
+btnB5.addEventListener('click', () => { if (audio) audio.currentTime=Math.max(0,audio.currentTime-5); });
+btnF5.addEventListener('click', () => { if (audio) audio.currentTime=Math.min(audio.duration,audio.currentTime+5); });
+
+/* Play current sentence */
+btnPlaySent.addEventListener('click', () => {
+  if (!audio || curIdx<0) return;
+  const s=SUBS[curIdx];
+  stopLoop();
+  audio.currentTime=msToS(s.startMs);
+  audio.play();
+  loopCheck=setInterval(()=>{
+    if (!audio||audio.currentTime*1000>=s.endMs){
+      if(audio){audio.pause();}
+      clearInterval(loopCheck); loopCheck=null;
+    }
+  },50);
+});
+
+/* Loop current sentence */
+function stopLoop() { if(loopCheck){clearInterval(loopCheck);loopCheck=null;} }
+
+btnLoopSent.addEventListener('click', () => {
+  if (!audio||curIdx<0) return;
+  isLooping=!isLooping;
+  if (isLooping) {
+    btnLoopSent.classList.add('active');
+    btnLoopSent.innerHTML=`<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>停止循环`;
+    stopLoop();
+    audio.currentTime=msToS(SUBS[curIdx].startMs);
+    audio.play();
+  } else {
+    btnLoopSent.classList.remove('active');
+    btnLoopSent.innerHTML=`<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>循环这句`;
+    if(audio) audio.pause();
+  }
+});
+
+/* ══════════════════════════════
+   Recording
+══════════════════════════════ */
+btnRecordBtn.addEventListener('click', async ()=>{
+  if (!isRec) {
+    try {
+      // 复用已有 stream；只在第一次（或 stream 被关闭后）请求权限
+      if (!micStream || micStream.getTracks().some(t => t.readyState === 'ended')) {
+        micStream = await navigator.mediaDevices.getUserMedia({audio:true});
+      }
+      const stream = micStream;
+      recChunks=[];
+      const mime=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':'audio/webm';
+      mediaRec=new MediaRecorder(stream,{mimeType:mime});
+      mediaRec.ondataavailable=e=>{if(e.data.size>0)recChunks.push(e.data);};
+      mediaRec.onstop=()=>{
+        const blob=new Blob(recChunks,{type:mime});
+        const url=URL.createObjectURL(blob);
+        const now=new Date();
+        const sentLabel = curIdx>=0 ? `第${curIdx+1}句` : '录音';
+        recordings.push({url,blob,label:`${sentLabel} · #${recordings.length+1}`,time:now.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),dur:recSecs,sentIdx:curIdx});
+        renderRecList();
+        // 自动加载刚录制的片段到对比图
+        cmpSel.value = String(recordings.length - 1);
+        renderCompareViz();
+        //stream.getTracks().forEach(t=>t.stop());
+      };
+      mediaRec.start(100);
+      startLiveViz(stream);
+      isRec=true;
+      btnRecordBtn.classList.add('recording');
+      recBtnLabel.textContent='停止录音';
+      recSecs=0; recTimerSpan.textContent='0:00';
+      recInt=setInterval(()=>{recSecs++;recTimerSpan.textContent=fmt(recSecs);},1000);
+    } catch(e) {
+      const msg = e && e.name === 'NotAllowedError'
+        ? '麦克风权限被拒绝。\n\n请点击浏览器地址栏左侧的图标（🔒或ⓘ），将麦克风设为「允许」，然后刷新页面重试。\n\n如无效，请前往 Chrome 设置 → 隐私和安全 → 网站设置 → 麦克风，手动允许。'
+        : '无法访问麦克风，请检查浏览器权限。\n(' + (e && e.message || e) + ')';
+      alert(msg);
+    }
+  } else {
+    stopLiveViz();
+    mediaRec.stop(); isRec=false;
+    btnRecordBtn.classList.remove('recording');
+    recBtnLabel.textContent='录音';
+    clearInterval(recInt); recTimerSpan.textContent='';
+    renderOrigChart();
+  }
+});
+
+function renderRecList() {
+  if (!recordings.length) { recList.innerHTML='<div class="rec-empty">还没有录音 — 选择一句话，点击「录音」按钮开始</div>'; updateCmpSel(); return; }
+  const total = recordings.length;
+  recList.innerHTML = recordings.slice().reverse().map((r, di) => {
+    const i = total - 1 - di;
+    return `
+    <div class="rec-item" style="cursor:pointer">
+      <div class="rec-dot-n">${i+1}</div>
+      <div class="rec-meta">
+        <div class="rec-label">${r.label}</div>
+        <div class="rec-sub">${r.time} · ${fmt(r.dur)}</div>
+      </div>
+      <div class="rec-btns">
+        <button class="btn-si p" data-i="${i}" title="查看对比"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></button>
+        <a class="btn-si" href="${r.url}" download="录音-${i+1}.webm" title="下载" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></a>
+        <button class="btn-si d" data-i="${i}" title="删除"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+      </div>
+    </div>`;
+  }).join('');
+  const triggerCompare = i => { cmpSel.value = String(i); renderCompareViz(); };
+  recList.querySelectorAll('.btn-si.p').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); triggerCompare(+b.dataset.i); }));
+  recList.querySelectorAll('.btn-si.d').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); recordings.splice(+b.dataset.i, 1); renderRecList(); }));
+  recList.querySelectorAll('.rec-item').forEach(item => item.addEventListener('click', () => {
+    const btn = item.querySelector('.btn-si.p'); if (btn) btn.click();
+  }));
+  updateCmpSel();
+}
+
+function updateCmpSel() {
+  cmpSel.innerHTML='<option value="">— 选择录音 —</option>'+recordings.map((r,i)=>`<option value="${i}">${r.label} (${fmt(r.dur)})</option>`).join('');
+}
+
+/* ══════════════════════════════
+   Compare
+══════════════════════════════ */
+btnCmpOrig.addEventListener('click',()=>{
+  if (!audio||curIdx<0) return;
+  const s=SUBS[curIdx];
+  stopLoop();
+  isLooping=false;
+  audio.playbackRate = parseFloat(spdSel.value) || 1;
+  audio.currentTime=msToS(s.startMs);
+  audio.play();
+  // Animate comparison playhead while original plays
+  if (playRafId) { cancelAnimationFrame(playRafId); playRafId = null; }
+  if (cmpEnv1) {
+    const spd = parseFloat(spdSel.value) || 1;
+    const effectiveOrigDur = cmpOrigDur / spd;
+    const maxDur = Math.max(effectiveOrigDur, cmpRecDur, 0.001);
+    const sentStart = msToS(s.startMs);
+    const animOrig = () => {
+      const ae = audio.currentTime - sentStart;  // audio seconds from sentence start
+      if (ae >= cmpOrigDur + 0.1) { cmpPlayhead = -1; redrawCharts(); playRafId = null; return; }
+      cmpPlayhead = Math.max(0, ae / spd) / maxDur;  // real-time elapsed / real maxDur
+      redrawCharts();
+      playRafId = requestAnimationFrame(animOrig);
+    };
+    playRafId = requestAnimationFrame(animOrig);
+  }
+  const chk=setInterval(()=>{
+    if(!audio||audio.currentTime*1000>=s.endMs){
+      if(audio)audio.pause();
+      clearInterval(chk);
+      if(playRafId){cancelAnimationFrame(playRafId);playRafId=null;}
+      cmpPlayhead=-1;redrawCharts();
+    }
+  },50);
+});
+
+btnCmpRec.addEventListener('click',()=>{
+  const i=parseInt(cmpSel.value);
+  if(isNaN(i)||!recordings[i]){alert('请先选择一段录音');return;}
+  new Audio(recordings[i].url).play();
+});
+
+cmpSel.addEventListener('change', () => renderCompareViz());
+
+/* ══════════════════════════════
+   Audio Analysis & Compare Viz
+══════════════════════════════ */
+function downsampleData(data, origRate, targetRate) {
+  const ratio = origRate / targetRate;
+  const newLen = Math.floor(data.length / ratio);
+  const result = new Float32Array(newLen);
+  for (let i = 0; i < newLen; i++) {
+    const s = Math.floor(i * ratio);
+    const e = Math.floor((i + 1) * ratio);
+    let sum = 0, cnt = 0;
+    for (let j = s; j < e && j < data.length; j++) { sum += data[j]; cnt++; }
+    result[i] = cnt > 0 ? sum / cnt : 0;
+  }
+  return result;
+}
+
+function findVoiceOnset(channelData, sampleRate) {
+  const frameSize = Math.round(0.02 * sampleRate);
+  const hopSize   = Math.round(0.01 * sampleRate);
+  const N = Math.max(1, Math.floor((channelData.length - frameSize) / hopSize));
+  const rms = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    let sum = 0, s = i * hopSize;
+    for (let j = 0; j < frameSize && s+j < channelData.length; j++) sum += channelData[s+j]**2;
+    rms[i] = Math.sqrt(sum / frameSize);
+  }
+  const maxR = Math.max(...rms, 1e-6), thresh = maxR * 0.04;
+  let onF = 0;
+  for (let i = 0; i < N; i++) { if (rms[i] > thresh) { onF = Math.max(0, i-1); break; } }
+  let enF = N-1;
+  for (let i = N-1; i >= 0; i--) { if (rms[i] > thresh) { enF = Math.min(N-1, i+1); break; } }
+  return {
+    start: Math.min(onF * hopSize, channelData.length),
+    end:   Math.min(enF * hopSize + frameSize, channelData.length)
+  };
+}
+
+function extractEnvelope(channelData, N = 200) {
+  const blockSize = Math.max(1, Math.floor(channelData.length / N));
+  const env = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    const start = i * blockSize;
+    const end = Math.min(start + blockSize, channelData.length);
+    let sum = 0;
+    for (let j = start; j < end; j++) sum += channelData[j] * channelData[j];
+    env[i] = Math.sqrt(sum / Math.max(1, end - start));
+  }
+  const smooth = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    smooth[i] = (env[Math.max(0,i-1)] + env[i] + env[Math.min(N-1,i+1)]) / 3;
+  }
+  const peak = Math.max(...smooth, 0.0001);
+  for (let i = 0; i < N; i++) smooth[i] /= peak;
+  return smooth;
+}
+
+function extractPitch(channelData, sampleRate, N = 100) {
+  const targetRate = 8000;
+  const data = sampleRate > targetRate ? downsampleData(channelData, sampleRate, targetRate) : channelData;
+  const effRate = sampleRate > targetRate ? targetRate : sampleRate;
+  const minLag = Math.floor(effRate / 400);
+  const maxLag = Math.floor(effRate / 70);
+  const frameSize = Math.min(512, data.length);
+  const hop = Math.max(1, Math.floor(data.length / N));
+  const pitches = new Float32Array(N);
+  for (let fi = 0; fi < N; fi++) {
+    const start = fi * hop;
+    if (start + frameSize > data.length) break;
+    let rms = 0;
+    for (let i = 0; i < frameSize; i++) rms += data[start+i] ** 2;
+    rms = Math.sqrt(rms / frameSize);
+    if (rms < 0.008) { pitches[fi] = 0; continue; }
+    let bestLag = -1, bestCorr = -Infinity;
+    const effMax = Math.min(maxLag, frameSize - 1);
+    for (let lag = minLag; lag <= effMax; lag++) {
+      let corr = 0;
+      const len = frameSize - lag;
+      for (let i = 0; i < len; i++) corr += data[start+i] * data[start+i+lag];
+      if (corr > bestCorr) { bestCorr = corr; bestLag = lag; }
+    }
+    let corr0 = 0;
+    for (let i = 0; i < frameSize; i++) corr0 += data[start+i] ** 2;
+    const nc = corr0 > 0 ? bestCorr / corr0 : 0;
+    pitches[fi] = (nc > 0.25 && bestLag > 0) ? effRate / bestLag : 0;
+  }
+  // 3-point median filter
+  const filtered = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    const win = [pitches[Math.max(0,i-1)], pitches[i], pitches[Math.min(N-1,i+1)]].filter(v=>v>0);
+    if (!win.length) filtered[i] = 0;
+    else { win.sort((a,b)=>a-b); filtered[i] = win[Math.floor(win.length/2)]; }
+  }
+  return filtered;
+}
+
+function medianPitch(pitches) {
+  const voiced = Array.from(pitches).filter(p => p > 0);
+  if (!voiced.length) return 0;
+  voiced.sort((a,b)=>a-b);
+  return Math.round(voiced[Math.floor(voiced.length/2)]);
+}
+
+function computeWordPositions(env, n) {
+  const N = env.length;
+  if (!N || !n) return null;
+  // Smooth envelope
+  const w = Math.max(1, Math.floor(N / 40));
+  const sm = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    let s = 0, c = 0;
+    for (let j = Math.max(0, i-w); j <= Math.min(N-1, i+w); j++) { s += env[j]; c++; }
+    sm[i] = s / c;
+  }
+  // Cumulative energy
+  const cum = new Float32Array(N);
+  cum[0] = sm[0];
+  for (let i = 1; i < N; i++) cum[i] = cum[i-1] + sm[i];
+  const total = cum[N-1];
+  if (total <= 0) return null;
+  // Binary search for each word center
+  const pos = new Float32Array(n);
+  for (let wi = 0; wi < n; wi++) {
+    const target = (wi + 0.5) / n * total;
+    let lo = 0, hi = N - 1;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (cum[mid] < target) lo = mid + 1; else hi = mid; }
+    pos[wi] = lo / (N - 1);
+  }
+  return pos;
+}
+
+function drawLyricsBar(canvas, text, env, playhead, origRatio, wordFracs) {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = canvas.offsetWidth  * dpr;
+  canvas.height = canvas.offsetHeight * dpr;
+  const W = canvas.offsetWidth, H = canvas.offsetHeight;
+  if (!W || !H || !text) return;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+  const dark = window.matchMedia('(prefers-color-scheme:dark)').matches;
+  const words = text.trim().split(/\s+/);
+  const n = words.length;
+  if (!n) return;
+
+  // use time positions for current-word lookup only
+  let wordPos = wordFracs || ((env && env.length >= 2) ? computeWordPositions(env, n) : null);
+  if (!wordPos) wordPos = Float32Array.from({length: n}, (_, i) => (i + 0.5) / n);
+  const progress = (origRatio > 0 && playhead >= 0) ? (playhead / origRatio) : -1;
+  let curWordIdx = -1;
+  if (progress >= 0 && progress <= 1.05) {
+    curWordIdx = 0;
+    for (let i = 1; i < n; i++) {
+      if (progress >= (wordPos[i-1] + wordPos[i]) / 2) curWordIdx = i;
+      else break;
+    }
+  }
+
+  // karaoke: measure words, lay out evenly
+  const fontSize = Math.min(17, Math.max(11, H * 0.60));
+  ctx.font = fontSize + 'px system-ui,-apple-system,sans-serif';
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center';
+  const widths = words.map(w => ctx.measureText(w).width);
+  const totalTextW = widths.reduce((a, b) => a + b, 0);
+  const gap = Math.max(6, (W - totalTextW) / (n + 1));
+  const xs = [];
+  let cx = gap;
+  for (let i = 0; i < n; i++) { xs.push(cx + widths[i] / 2); cx += widths[i] + gap; }
+
+  // highlight capsule behind active word
+  if (curWordIdx >= 0) {
+    const hw = widths[curWordIdx] / 2 + 6, hh = fontSize * 0.72;
+    ctx.save();
+    ctx.fillStyle = dark ? 'rgba(251,191,36,0.18)' : 'rgba(217,119,6,0.14)';
+    ctx.beginPath(); ctx.roundRect(xs[curWordIdx]-hw, H/2-hh, hw*2, hh*2, hh); ctx.fill();
+    ctx.restore();
+  }
+
+  for (let i = 0; i < n; i++) {
+    const isActive = (i === curWordIdx), isPast = progress >= 0 && i < curWordIdx;
+    ctx.save();
+    ctx.font = (isActive ? 'bold ' : '') + fontSize + 'px system-ui,-apple-system,sans-serif';
+    ctx.fillStyle = isActive ? (dark?'#fbbf24':'#d97706') : isPast ? (dark?'rgba(255,255,255,0.32)':'rgba(0,0,0,0.25)') : (dark?'rgba(255,255,255,0.80)':'rgba(20,20,20,0.75)');
+    ctx.fillText(words[i], xs[i], H/2);
+    ctx.restore();
+  }
+}
+
+function drawEnvChart(canvas, env1, env2, sel = null, dur1 = 1, dur2 = 1, playhead = -1, text = '', wordFracs = null) {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = canvas.offsetWidth * dpr;
+  canvas.height = canvas.offsetHeight * dpr;
+  const W = canvas.offsetWidth, H = canvas.offsetHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+  const dark = window.matchMedia('(prefers-color-scheme:dark)').matches;
+  const pad = 5;
+  const words = text ? text.trim().split(/\s+/) : [];
+  const hasWords = words.length > 1 && wordFracs && wordFracs.length >= words.length;
+  const labelH = hasWords ? 16 : 0;
+  const cW = W - pad * 2;
+  const cH = H - pad * 2 - labelH;
+
+  if (hasWords) {
+    ctx.fillStyle = dark ? 'rgba(0,0,0,0.30)' : 'rgba(0,0,0,0.06)';
+    ctx.fillRect(pad, pad + cH, cW, labelH);
+  }
+
+  ctx.strokeStyle = dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)';
+  ctx.lineWidth = 1;
+  for (const t of [0.25, 0.5, 0.75]) {
+    const y = pad + t * cH;
+    ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(pad + cW, y); ctx.stroke();
+  }
+
+  const maxDurE = Math.max(dur1, dur2, 0.001);
+  const r1e = dur1 / maxDurE, r2e = dur2 / maxDurE;
+
+  let curWordIdx = -1;
+  if (hasWords && playhead >= 0 && r1e > 0) {
+    const n = words.length, wf = wordFracs;
+    const progress = Math.min(playhead / r1e, 1.0);
+    if (progress <= 1.02) {
+      curWordIdx = 0;
+      for (let i = 1; i < n; i++) {
+        if (progress >= (wf[i-1] + wf[i]) / 2) curWordIdx = i; else break;
+      }
+    }
+  }
+
+  if (hasWords && curWordIdx >= 0) {
+    const n = words.length, wf = wordFracs;
+    const bS = curWordIdx === 0 ? 0 : (wf[curWordIdx-1] + wf[curWordIdx]) / 2;
+    const bE = curWordIdx === n-1 ? 1 : (wf[curWordIdx] + wf[curWordIdx+1]) / 2;
+    ctx.save();
+    ctx.fillStyle = dark ? 'rgba(251,191,36,0.11)' : 'rgba(217,119,6,0.09)';
+    ctx.fillRect(pad + bS * cW * r1e, pad, (bE - bS) * cW * r1e, cH);
+    ctx.restore();
+  }
+
+  function drawSeries(data, widthRatio, color, fillA) {
+    if (!data || data.length < 2) return;
+    const N = data.length;
+    ctx.beginPath();
+    for (let i = 0; i < N; i++) {
+      const x = pad + (i/(N-1))*cW*widthRatio;
+      const y = pad + (1-data[i])*cH;
+      i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    }
+    ctx.lineWidth = 1.8; ctx.strokeStyle = color; ctx.globalAlpha = 0.9; ctx.lineJoin='round'; ctx.stroke();
+    ctx.lineTo(pad + cW*widthRatio, pad+cH); ctx.lineTo(pad, pad+cH); ctx.closePath();
+    ctx.fillStyle = color; ctx.globalAlpha = fillA; ctx.fill(); ctx.globalAlpha = 1;
+  }
+  drawSeries(env1, r1e, dark ? '#5a9fd4' : '#185FA5', 0.16);
+  drawSeries(env2, r2e, '#e07c24', 0.14);
+
+  if (sel && sel.b > sel.a) {
+    const sx = pad + sel.a*cW, sw = (sel.b-sel.a)*cW;
+    ctx.fillStyle = 'rgba(255,185,0,0.18)'; ctx.fillRect(sx, pad, sw, cH);
+    ctx.strokeStyle = 'rgba(210,140,0,0.7)'; ctx.lineWidth = 1.5; ctx.strokeRect(sx, pad, sw, cH);
+  }
+
+  if (hasWords) {
+    const n = words.length, wf = wordFracs;
+    for (let i = 0; i < n; i++) {
+      const bStart = i === 0 ? 0 : (wf[i-1] + wf[i]) / 2;
+      const bEnd   = i === n-1 ? 1 : (wf[i] + wf[i+1]) / 2;
+      const xStart = pad + bStart * cW * r1e;
+      const xEnd   = pad + bEnd   * cW * r1e;
+      const xMid   = pad + wf[i]  * cW * r1e;
+      const wordW  = xEnd - xStart;
+      if (i > 0) {
+        ctx.save();
+        ctx.strokeStyle = dark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.14)';
+        ctx.lineWidth = 1; ctx.setLineDash([2, 4]);
+        ctx.beginPath(); ctx.moveTo(xStart, pad); ctx.lineTo(xStart, pad + cH + labelH); ctx.stroke();
+        ctx.setLineDash([]); ctx.restore();
+      }
+      const isActive = i === curWordIdx;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(xStart + 1, pad + cH, Math.max(wordW - 2, 1), labelH);
+      ctx.clip();
+      ctx.font = `${isActive ? 'bold ' : ''}10px system-ui,-apple-system,sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = isActive ? (dark ? '#fbbf24' : '#d97706') : (dark ? 'rgba(255,255,255,0.50)' : 'rgba(0,0,0,0.42)');
+      ctx.fillText(words[i], xMid, pad + cH + labelH / 2);
+      ctx.restore();
+    }
+  }
+
+  // Custom user-placed timing markers
+  if (typeof customMarkers !== 'undefined' && customMarkers.length > 0) {
+    for (const m of customMarkers) {
+      const mx = pad + m.frac * cW;
+      ctx.save();
+      ctx.strokeStyle = '#22c55e';
+      ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
+      ctx.beginPath(); ctx.moveTo(mx, pad); ctx.lineTo(mx, pad + cH + labelH); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = 'bold 10px system-ui,-apple-system,sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      const tw = ctx.measureText(m.word).width;
+      ctx.fillStyle = dark ? 'rgba(34,197,94,0.20)' : 'rgba(34,197,94,0.16)';
+      ctx.fillRect(mx - tw/2 - 3, pad, tw + 6, 14);
+      ctx.fillStyle = dark ? '#4ade80' : '#16a34a';
+      ctx.fillText(m.word, mx, pad + 2);
+      ctx.restore();
+    }
+  }
+
+  if (playhead >= 0) {
+    const px = pad + playhead * cW;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(px, pad); ctx.lineTo(px, pad + cH + labelH); ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawPitchChart(canvas, pitch1, pitch2, sel = null, dur1 = 1, dur2 = 1, playhead = -1) {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = canvas.offsetWidth * dpr;
+  canvas.height = canvas.offsetHeight * dpr;
+  const W = canvas.offsetWidth, H = canvas.offsetHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+  const dark = window.matchMedia('(prefers-color-scheme:dark)').matches;
+  const pad = 5;
+  const cW = W - pad*2, cH = H - pad*2;
+  const allP = [...pitch1, ...pitch2].filter(p=>p>0);
+  if (!allP.length) {
+    ctx.fillStyle = dark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)';
+    ctx.font = '11px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('未检测到有声帧（静音或音量过低）', W/2, H/2+4);
+    return;
+  }
+  const minP = Math.max(60, Math.min(...allP)*0.88);
+  const maxP = Math.min(520, Math.max(...allP)*1.12);
+  ctx.strokeStyle = dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)';
+  ctx.lineWidth = 1;
+  for (const t of [0.25, 0.5, 0.75]) {
+    const y = pad + t*cH; ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(pad+cW, y); ctx.stroke();
+  }
+  // Hz labels
+  ctx.fillStyle = dark ? 'rgba(255,255,255,0.32)' : 'rgba(0,0,0,0.28)';
+  ctx.font = '9px sans-serif'; ctx.textAlign='left';
+  ctx.fillText(Math.round(maxP)+'Hz', pad+2, pad+9);
+  ctx.fillText(Math.round(minP)+'Hz', pad+2, pad+cH-2);
+  function pToY(p) { return pad + (1-(p-minP)/(maxP-minP))*cH; }
+  const maxDurP = Math.max(dur1, dur2, 0.001);
+  const r1p = dur1 / maxDurP, r2p = dur2 / maxDurP;
+  function drawPSeries(data, widthRatio, color, alpha) {
+    const N = data.length;
+    ctx.lineWidth = 2; ctx.strokeStyle = color; ctx.lineJoin='round'; ctx.lineCap='round'; ctx.globalAlpha = alpha;
+    let inSeg = false;
+    for (let i = 0; i < N; i++) {
+      const p = data[i], x = pad+(i/(N-1))*cW*widthRatio;
+      if (p <= 0) { if (inSeg) { ctx.stroke(); inSeg=false; } continue; }
+      const y = Math.max(pad, Math.min(pad+cH, pToY(p)));
+      if (!inSeg) { ctx.beginPath(); ctx.moveTo(x,y); inSeg=true; } else ctx.lineTo(x,y);
+    }
+    if (inSeg) ctx.stroke();
+    ctx.fillStyle = color;
+    for (let i = 0; i < N; i++) {
+      const p = data[i]; if (p<=0) continue;
+      const x = pad+(i/(N-1))*cW*widthRatio, y = Math.max(pad, Math.min(pad+cH, pToY(p)));
+      ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  drawPSeries(pitch1, r1p, dark ? '#5a9fd4' : '#185FA5', 0.75);
+  drawPSeries(pitch2, r2p, '#e07c24', 0.9);
+  if (sel && sel.b > sel.a) {
+    const sx = pad + sel.a*cW, sw = (sel.b-sel.a)*cW;
+    ctx.fillStyle = 'rgba(255,185,0,0.18)'; ctx.fillRect(sx, pad, sw, cH);
+    ctx.strokeStyle = 'rgba(210,140,0,0.7)'; ctx.lineWidth = 1.5; ctx.strokeRect(sx, pad, sw, cH);
+  }
+  if (playhead >= 0) {
+    const px = pad + playhead * cW;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(px, pad); ctx.lineTo(px, pad+cH); ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function redrawCharts() {
+  const ec = document.getElementById('cmpEnvCanvas');
+  const lc = document.getElementById('cmpLyricsCanvas');
+  const speed = parseFloat(spdSel.value) || 1;
+  const effectiveOrigDur = cmpOrigDur / speed;
+  const maxDurR = Math.max(effectiveOrigDur, cmpRecDur, 0.001);
+  if (cmpEnv1 && ec)   drawEnvChart(ec, cmpEnv1, cmpEnv2, null, effectiveOrigDur, cmpRecDur, cmpPlayhead, cmpText, cmpWordFracs);
+  if (cmpText && lc)   drawLyricsBar(lc, cmpText, cmpEnv1, cmpPlayhead, effectiveOrigDur / maxDurR, cmpWordFracs);
+}
+
+async function renderOrigChart() {
+  if (curIdx < 0 || !origAudioBuffer) return;
+  stopLiveViz();
+  const s = SUBS[curIdx];
+  const sr = origAudioBuffer.sampleRate;
+  const startSample = Math.round(s.startMs/1000*sr);
+  const endSample = Math.min(Math.round(s.endMs/1000*sr), origAudioBuffer.length);
+  const rawOrig = origAudioBuffer.getChannelData(0).slice(startSample, endSample);
+  const oo = findVoiceOnset(rawOrig, sr);
+  const origSeg = rawOrig.slice(oo.start, oo.end);
+  cmpOrigSeg = origSeg; cmpOrigSr = sr;
+  cmpOrigDur = origSeg.length / sr;
+  cmpEnv1 = extractEnvelope(origSeg, 200);
+  cmpPitch1 = null;
+  cmpEnv2 = null; cmpPitch2 = null; cmpRecDur = 0;
+  cmpSelA = -1; cmpSelB = -1; cmpPlayhead = -1;
+  cmpText = SUBS[curIdx].text;
+  cmpWordFracs = SUBS[curIdx].wordFracs || null;
+  loadCustomMarkers();
+  renderWordChips();
+  document.getElementById('btnPlayCmpWrap').style.display = 'none';
+  document.getElementById('cmpVizWrap').style.display = 'block';
+  document.getElementById('cmpVizNote').textContent = `原声 ${cmpOrigDur.toFixed(1)}s — 开始录音即可实时对比`;
+  redrawCharts();
+}
+
+function startLiveViz(stream) {
+  if (!cmpEnv1) return;
+  stopLiveViz();
+  const lActx = new AudioContext();
+  liveActx = lActx;
+  const src = lActx.createMediaStreamSource(stream);
+  const analyser = lActx.createAnalyser();
+  analyser.fftSize = 2048;
+  src.connect(analyser);
+  liveAnalyser = analyser;
+  liveEnvData = [];
+  liveRecStartTime = Date.now();
+  const timeBuf = new Float32Array(analyser.fftSize);
+  const tick = () => {
+    if (!liveAnalyser) { liveRecRafId = null; return; }
+    analyser.getFloatTimeDomainData(timeBuf);
+    let sum = 0;
+    for (let i = 0; i < timeBuf.length; i++) sum += timeBuf[i] * timeBuf[i];
+    liveEnvData.push(Math.sqrt(sum / timeBuf.length));
+    const elapsed = (Date.now() - liveRecStartTime) / 1000;
+    const liveSpeed = parseFloat(spdSel.value) || 1;
+    const effectiveLiveDur = cmpOrigDur / liveSpeed;
+    cmpPlayhead = Math.min(elapsed / effectiveLiveDur, 0.999);
+    const liveDur = Math.min(elapsed, effectiveLiveDur);
+    if (liveEnvData.length > 1) {
+      let envPeak = 0.0001;
+      for (const v of liveEnvData) if (v > envPeak) envPeak = v;
+      const dispEnv = new Float32Array(liveEnvData.map(v => v / envPeak));
+      const ec = document.getElementById('cmpEnvCanvas');
+      if (ec) drawEnvChart(ec, cmpEnv1, dispEnv, null, effectiveLiveDur, liveDur, cmpPlayhead, cmpText, cmpWordFracs);
+      const lc = document.getElementById('cmpLyricsCanvas');
+      if (cmpText && lc) drawLyricsBar(lc, cmpText, cmpEnv1, cmpPlayhead, 1.0, cmpWordFracs);
+    }
+    liveRecRafId = requestAnimationFrame(tick);
+  };
+  liveRecRafId = requestAnimationFrame(tick);
+}
+
+function stopLiveViz() {
+  if (liveRecRafId) { cancelAnimationFrame(liveRecRafId); liveRecRafId = null; }
+  if (liveActx) { try { liveActx.close(); } catch(e) {} liveActx = null; }
+  liveAnalyser = null;
+  cmpPlayhead = -1;
+}
+
+async function renderCompareViz() {
+  const myToken = ++vizToken;
+  const vizWrap = document.getElementById('cmpVizWrap');
+  const noteEl = document.getElementById('cmpVizNote');
+  const recIdx = parseInt(cmpSel.value);
+  if (curIdx < 0 || !origAudioBuffer) { vizWrap.style.display = 'none'; return; }
+  if (isNaN(recIdx) || !recordings[recIdx]) { renderOrigChart(); return; }
+  vizWrap.style.display = 'block';
+  noteEl.textContent = '分析中…';
+  const s = SUBS[curIdx];
+  const sr = origAudioBuffer.sampleRate;
+  const startSample = Math.round(s.startMs/1000*sr);
+  const endSample = Math.min(Math.round(s.endMs/1000*sr), origAudioBuffer.length);
+  const rawOrig = origAudioBuffer.getChannelData(0).slice(startSample, endSample);
+  let recBuf;
+  try {
+    const resp = await fetch(recordings[recIdx].url);
+    const arrBuf = await resp.arrayBuffer();
+    if (myToken !== vizToken) return;
+    recBuf = await getActx().decodeAudioData(arrBuf);
+  } catch(e) { noteEl.textContent = '录音解码失败，请重试'; return; }
+  if (myToken !== vizToken) return;
+  const rawRec = recBuf.getChannelData(0);
+  const oo = findVoiceOnset(rawOrig, sr);
+  const ro = findVoiceOnset(rawRec, recBuf.sampleRate);
+  const origSeg = rawOrig.slice(oo.start, oo.end);
+  const recSeg  = rawRec.slice(ro.start, ro.end);
+  cmpOrigSeg = origSeg; cmpOrigSr = sr;
+  cmpRecSeg  = recSeg;  cmpRecSr  = recBuf.sampleRate;
+  cmpOrigDur = origSeg.length / sr;
+  cmpRecDur  = recSeg.length / recBuf.sampleRate;
+  cmpSelA = -1; cmpSelB = -1;
+  cmpText = SUBS[curIdx].text;
+  cmpWordFracs = SUBS[curIdx].wordFracs || null;
+  document.getElementById('btnPlayCmpWrap').style.display = 'none';
+  const env1 = extractEnvelope(origSeg, 200);
+  const env2 = extractEnvelope(recSeg, 200);
+  cmpEnv1 = env1; cmpEnv2 = env2;
+  cmpPitch1 = null; cmpPitch2 = null;
+  redrawCharts();
+  const origDur = (origSeg.length / sr).toFixed(1);
+  const recDur  = (recSeg.length / recBuf.sampleRate).toFixed(1);
+  const ratio = parseFloat(recDur) / parseFloat(origDur);
+  const speedStr = ratio > 1.05 ? `慢 ${((ratio-1)*100).toFixed(0)}%` : ratio < 0.95 ? `快 ${((1-ratio)*100).toFixed(0)}%` : '速度相近';
+  noteEl.textContent = `原声 ${origDur}s · 你的录音 ${recDur}s · 你比原声${speedStr}`;
+  document.getElementById('btnPlayCmpWrap').style.display = 'block';
+}
+
+/* ══════════════════════════════
+   Init
+══════════════════════════════ */
+// Float32Array PCM → WAV Blob，让 Audio 元素播放以获得浏览器原生音高保持拉伸
+function float32ToWav(samples, sampleRate) {
+  const n = samples.length;
+  const buf = new ArrayBuffer(44 + n * 2);
+  const dv = new DataView(buf);
+  const ws = (off, str) => { for (let i = 0; i < str.length; i++) dv.setUint8(off + i, str.charCodeAt(i)); };
+  ws(0,'RIFF'); dv.setUint32(4, 36 + n*2, true);
+  ws(8,'WAVE'); ws(12,'fmt '); dv.setUint32(16, 16, true);
+  dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+  dv.setUint32(24, sampleRate, true); dv.setUint32(28, sampleRate*2, true);
+  dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
+  ws(36,'data'); dv.setUint32(40, n*2, true);
+  for (let i = 0; i < n; i++) dv.setInt16(44 + i*2, Math.max(-1, Math.min(1, samples[i])) * 0x7FFF, true);
+  return new Blob([buf], { type: 'audio/wav' });
+}
+
+async function playComparison() {
+  if (!cmpOrigSeg || !cmpRecSeg) return;
+  if (selPlayCtx) { try { selPlayCtx.close(); } catch(e) {} selPlayCtx = null; }
+  if (playRafId) { cancelAnimationFrame(playRafId); playRafId = null; }
+  const speed = parseFloat(spdSel.value) || 1;
+  const effectiveOrigDur = cmpOrigDur / speed;
+  const actx = new AudioContext();
+  selPlayCtx = actx;
+  const maxDur = Math.max(effectiveOrigDur, cmpRecDur, 0.001);
+
+  // 原声：用 Audio 元素播放 → 浏览器时间拉伸算法（保持音高，与主播放器一致）
+  // AudioBufferSourceNode.playbackRate 是简单重采样，慢速时音高降低听起来像机器人
+  const origUrl = URL.createObjectURL(float32ToWav(cmpOrigSeg, cmpOrigSr));
+  const origAudio = new Audio(origUrl);
+  origAudio.playbackRate = speed;
+  const origSrc = actx.createMediaElementSource(origAudio);
+  const origPanner = actx.createStereoPanner();
+  origPanner.pan.value = -0.75;
+  origSrc.connect(origPanner);
+  origPanner.connect(actx.destination);
+
+  // 录音：AudioBufferSourceNode 1×（跟着慢速录的，原速回放即可，无音高问题）
+  const recBuf = actx.createBuffer(1, cmpRecSeg.length, cmpRecSr);
+  recBuf.copyToChannel(cmpRecSeg, 0);
+  const recSrc = actx.createBufferSource();
+  recSrc.buffer = recBuf;
+  const recPanner = actx.createStereoPanner();
+  recPanner.pan.value = +0.75;
+  recSrc.connect(recPanner);
+  recPanner.connect(actx.destination);
+
+  const btn = document.getElementById('btnPlayCmp');
+  btn.disabled = true;
+  btn.textContent = speed !== 1 ? `⏸ 播放中… ${speed}×` : '⏸ 播放中…';
+  const startTime = performance.now();
+  origAudio.play();
+  recSrc.start(0);
+  const animatePlayhead = () => {
+    const elapsed = (performance.now() - startTime) / 1000;
+    if (elapsed >= maxDur || selPlayCtx !== actx) {
+      cmpPlayhead = -1; redrawCharts(); playRafId = null; return;
+    }
+    cmpPlayhead = elapsed / maxDur;
+    redrawCharts();
+    playRafId = requestAnimationFrame(animatePlayhead);
+  };
+  playRafId = requestAnimationFrame(animatePlayhead);
+  await new Promise(res => setTimeout(res, maxDur * 1000 + 150));
+  origAudio.pause();
+  URL.revokeObjectURL(origUrl);
+  if (selPlayCtx === actx) { try { actx.close(); } catch(e) {} selPlayCtx = null; }
+  cmpPlayhead = -1; redrawCharts();
+  btn.disabled = false;
+  btn.innerHTML = '<svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>播放对比（左耳=原声 · 右耳=我的录音）';
+}
+
+/* ══════════════════════════════
+   SRT Import
+══════════════════════════════ */
+function srtTimeToMs(t) {
+  const [hms, ms = '0'] = t.trim().replace(',', '.').split('.');
+  const [h, m, s] = hms.split(':').map(Number);
+  return h * 3600000 + m * 60000 + s * 1000 + parseInt(ms.slice(0, 3).padEnd(3, '0'));
+}
+function msToSrtTime(ms) {
+  const h  = Math.floor(ms / 3600000);
+  const m  = Math.floor((ms % 3600000) / 60000);
+  const s  = Math.floor((ms % 60000)  / 1000);
+  const mm = ms % 1000;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')},${String(mm).padStart(3,'0')}`;
+}
+
+function parseSrtRaw(text) {
+  text = text.replace(/\(Transcribed by TurboScribe[^)]*\)\s*/gi, '');
+  const entries = [];
+  for (const block of text.split(/\r?\n\s*\r?\n/)) {
+    const lines = block.trim().split(/\r?\n/);
+    const ti = lines.findIndex(l => /^\d{2}:\d{2}:\d{2}[,.]\d{3}\s*-->/.test(l));
+    if (ti < 0) continue;
+    const [startStr, endStr] = lines[ti].split('-->').map(s => s.trim());
+    const txt = lines.slice(ti + 1).join(' ').replace(/<[^>]+>/g, '').trim();
+    if (!txt) continue;
+    entries.push({ start: startStr, end: endStr, startMs: srtTimeToMs(startStr), endMs: srtTimeToMs(endStr), text: txt });
+  }
+  return entries;
+}
+
+function mergeSrt(entries, gapMs = 1200) {
+  const out = [];
+  let cur = null;
+  for (const e of entries) {
+    if (!cur) { cur = { ...e }; continue; }
+    const gap = e.startMs - cur.endMs;
+    const endsWithPunct = /[.?!]["']?\s*$/.test(cur.text);
+    // 合并条件：间隔短 且 (上句未结束，或间隔几乎为0 = 转录折行)
+    if (gap <= gapMs && (!endsWithPunct || gap < 50)) {
+      cur.end = e.end; cur.endMs = e.endMs;
+      cur.text = cur.text.trimEnd() + ' ' + e.text.trimStart();
+    } else {
+      out.push(cur); cur = { ...e };
+    }
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+
+function _buildWordFracs(words, startMs, endMs, n) {
+  const valid = words.filter(w => w.start != null && w.end != null);
+  if (!valid.length || !n) return null;
+  const startSec = startMs / 1000, segDur = Math.max((endMs - startMs) / 1000, 0.001);
+  const fracs = new Float32Array(n);
+  for (let j = 0; j < n; j++) {
+    const mIdx = Math.min(Math.round(j * (valid.length - 1) / Math.max(n - 1, 1)), valid.length - 1);
+    const mid = (valid[mIdx].start + valid[mIdx].end) / 2;
+    fracs[j] = Math.max(0, Math.min(1, (mid - startSec) / segDur));
+  }
+  return fracs;
+}
+
+function loadWhisperXJson(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    let data;
+    try { data = JSON.parse(ev.target.result); } catch(e) { alert('JSON 解析失败，请检查文件'); return; }
+    if (!data.segments) { alert('不是有效的 WhisperX JSON 格式'); return; }
+
+    if (!SUBS.length) {
+      // ── 独立模式：直接从 segments 建句子列表 ──
+      _favPracticeMode = false;
+      const newSubs = [];
+      for (const seg of data.segments) {
+        if (!seg.text || !seg.text.trim()) continue;
+        const startMs = Math.round((seg.start || 0) * 1000);
+        const endMs   = Math.round((seg.end   || 0) * 1000);
+        const sub = {
+          start:   msToSrtTime(startMs),
+          end:     msToSrtTime(endMs),
+          startMs,
+          endMs,
+          text:    seg.text.trim(),
+        };
+        if (seg.words && seg.words.length) {
+          const n = sub.text.split(/\s+/).length;
+          const fracs = _buildWordFracs(seg.words, sub.startMs, sub.endMs, n);
+          if (fracs) sub.wordFracs = fracs;
+        }
+        newSubs.push(sub);
+      }
+      if (!newSubs.length) { alert('JSON 中没有有效的字幕段落'); return; }
+      SUBS = newSubs;
+      filteredSubs = [...SUBS];
+      curIdx = -1;
+      scoreSubs();
+      renderSubList();
+      const hint = document.getElementById('srtHint');
+      const hasWords = SUBS.some(s => s.wordFracs);
+      if (hint) hint.textContent = `✓ 已载入 ${SUBS.length} 句${hasWords ? '（含逐词时间戳）' : ''}`;
+      document.querySelector('.upload-hint').innerHTML =
+        `字幕已导入 (<strong>${SUBS.length}句</strong>) — 上传对应音频即可开始练习`;
+      saveSubsCache();
+
+    } else {
+      // ── 叠加模式：为已有 SRT 句子附加逐词时间戳 ──
+      const allWords = [];
+      for (const seg of data.segments) {
+        if (!seg.words) continue;
+        for (const w of seg.words) {
+          if (w.start != null && w.end != null && w.word) allWords.push({ start: w.start, end: w.end });
+        }
+      }
+      if (!allWords.length) { alert('JSON 中没有找到逐词时间戳'); return; }
+      let enriched = 0;
+      for (const sub of SUBS) {
+        const startSec = sub.startMs / 1000, endSec = sub.endMs / 1000;
+        const segDur   = Math.max(endSec - startSec, 0.001);
+        const n = sub.text.trim().split(/\s+/).length;
+        if (!n) continue;
+        const matched = allWords.filter(w => w.start >= startSec - 0.15 && w.end <= endSec + 0.15);
+        if (!matched.length) continue;
+        const fracs = _buildWordFracs(matched, sub.startMs, sub.endMs, n);
+        if (fracs) { sub.wordFracs = fracs; enriched++; }
+      }
+      const hint = document.getElementById('srtHint');
+      if (hint) hint.textContent = `✓ 逐词时间戳已附加：${enriched}/${SUBS.length} 句（歌词条精确对齐）`;
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function loadSrt(file) {
+  _favPracticeMode = false;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const raw = parseSrtRaw(ev.target.result);
+    if (!raw.length) { alert('SRT 解析失败，请检查文件格式'); return; }
+    SUBS = mergeSrt(raw);
+    filteredSubs = [...SUBS];
+    curIdx = -1;
+    scoreSubs();
+    renderSubList();
+    const hint = document.getElementById('srtHint');
+    if (hint) hint.textContent = `✓ 已从 ${raw.length} 条字幕合并为 ${SUBS.length} 句`;
+    document.querySelector('.upload-hint').innerHTML =
+      `字幕已导入 (<strong>${SUBS.length}句</strong>) — 上传对应音频即可开始练习`;
+    saveSubsCache();
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+const srtInput     = document.getElementById('srtInput');
+const btnChangeSrt = document.getElementById('btnChangeSrt');
+btnChangeSrt.addEventListener('click', () => { srtInput.value = ''; srtInput.click(); });
+srtInput.addEventListener('change', () => { if (srtInput.files[0]) loadSrt(srtInput.files[0]); });
+document.getElementById('srtOverlayLabel').addEventListener('click', () => { srtInput.value = ''; srtInput.click(); });
+const jsonInput     = document.getElementById('jsonInput');
+const btnChangeJson = document.getElementById('btnChangeJson');
+btnChangeJson.addEventListener('click', () => { jsonInput.value = ''; jsonInput.click(); });
+
+// ── 下载当前字幕为 JSON ───────────────────────────────────────────────
+function downloadSubsJson() {
+  if (!SUBS.length) return;
+  const segments = SUBS.map(s => {
+    const seg = { start: s.startMs / 1000, end: s.endMs / 1000, text: ' ' + s.text };
+    return seg;
+  });
+  const payload = JSON.stringify({ segments, language: 'en' }, null, 2);
+  const fname = (currentAudioFilename
+    ? currentAudioFilename.replace(/\.[^.]+$/, '') + '.json'
+    : 'subtitles.json');
+  const a = document.createElement('a');
+  a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(payload);
+  a.download = fname;
+  a.click();
+}
+const btnDownloadJson = document.getElementById('btnDownloadJson');
+btnDownloadJson.addEventListener('click', downloadSubsJson);
+// 字幕有内容时显示按鈕
+function updateDownloadBtn() {
+  btnDownloadJson.style.display = SUBS.length ? '' : 'none';
+}
+jsonInput.addEventListener('change', () => { if (jsonInput.files[0]) loadWhisperXJson(jsonInput.files[0]); });
+document.getElementById('jsonOverlayLabel').addEventListener('click', () => { jsonInput.value = ''; jsonInput.click(); });
+
+/* ══════════════════════════════
+   Expression filter / manager handlers
+══════════════════════════════ */
+(function initExprUI() {
+  loadUserExprs();
+  loadDismissed();
+
+  // Filter toggle
+  document.getElementById('btnExprFilter').addEventListener('click', () => {
+    exprFilterOn = !exprFilterOn;
+    document.getElementById('btnExprFilter').classList.toggle('active', exprFilterOn);
+    renderSubList(searchBox.value);
+  });
+
+  // Manager panel toggle
+  document.getElementById('btnExprManage').addEventListener('click', () => {
+    const wrap = document.getElementById('exprManagerWrap');
+    const open = wrap.style.display !== 'none' && wrap.style.display !== '';
+    wrap.style.display = open ? 'none' : 'block';
+    document.getElementById('btnExprManage').classList.toggle('active', !open);
+    if (!open) { renderUserExprList(); updateDismissedPanel(); }
+  });
+
+  // Add expression
+  function doAddExpr() {
+    const inp = document.getElementById('exprAddInput');
+    const val = inp.value.trim().toLowerCase();
+    if (!val) return;
+    if (userExprs.some(e => e.pat === val)) { inp.select(); return; }
+    userExprs.push({ pat: val, label: '自定义' });
+    saveUserExprs();
+    scoreSubs();
+    renderUserExprList();
+    renderSubList(searchBox.value);
+    inp.value = '';
+  }
+  document.getElementById('btnExprAdd').addEventListener('click', doAddExpr);
+  document.getElementById('exprAddInput').addEventListener('keydown', e => { if (e.key === 'Enter') doAddExpr(); });
+
+  // Bulk import toggle
+  document.getElementById('btnExprBulk').addEventListener('click', () => {
+    const wrap = document.getElementById('exprBulkWrap');
+    wrap.style.display = wrap.style.display === 'none' || !wrap.style.display ? 'block' : 'none';
+    if (wrap.style.display === 'block') document.getElementById('exprBulkInput').focus();
+  });
+  document.getElementById('btnBulkCancel').addEventListener('click', () => {
+    document.getElementById('exprBulkWrap').style.display = 'none';
+    document.getElementById('exprBulkInput').value = '';
+  });
+  document.getElementById('btnBulkConfirm').addEventListener('click', () => {
+    const raw = document.getElementById('exprBulkInput').value;
+    const lines = raw.split(/[\n,]+/).map(s => s.trim().toLowerCase()).filter(s => s.length > 0);
+    let added = 0;
+    for (const val of lines) {
+      if (!userExprs.some(e => e.pat === val)) { userExprs.push({ pat: val, label: '自定义' }); added++; }
+    }
+    if (added > 0) { saveUserExprs(); scoreSubs(); renderUserExprList(); renderSubList(searchBox.value); }
+    document.getElementById('exprBulkWrap').style.display = 'none';
+    document.getElementById('exprBulkInput').value = '';
+    if (added > 0) { const b = document.getElementById('btnExprBulk'); b.textContent = `✓ 已导入 ${added} 条`; setTimeout(()=>b.textContent='批量导入',2000); }
+  });
+
+  // Export dismissed (feedback to Copilot)
+  document.getElementById('btnExportDismissed').addEventListener('click', () => {
+    const arr = [...dismissedExprs];
+    if (!arr.length) { const b = document.getElementById('btnExportDismissed'); b.textContent='暂无屏蔽'; setTimeout(()=>b.textContent='导出反馈',1500); return; }
+    const text = arr.join('\n');
+    navigator.clipboard.writeText(text)
+      .then(() => { const b=document.getElementById('btnExportDismissed'); b.textContent='✓ 已复制'; setTimeout(()=>b.textContent='导出反馈',2000); })
+      .catch(() => prompt('已屏蔽表达（粘贴给 Copilot）：', text));
+  });
+})();
+
+
+/* ══════════════════════════════
+   Fav Practice Mode — inject fav clip into right panel
+══════════════════════════════ */
+async function enterFavPractice(favId) {
+  const fav = FAVS.find(f => f.id === favId);
+  if (!fav) return;
+  if (!fav.hasAudio) { alert('该收藏没有保存音频，请重新收藏'); return; }
+  const blob = await loadFavClip(favId);
+  if (!blob) { alert('音频片段未找到，请重新收藏'); return; }
+
+  // Stop fav preview player
+  if (favAudio) { favAudio.pause(); stopFavKaraoke(); favAudio = null; favAudioId = null; updateFavPlayBtns(); }
+
+  // Stop current audio (will be reloaded from _originalAudioFile on exit)
+  if (audio) { audio.pause(); audio.src = ''; audio = null; }
+  _decodeWaveToken++; // 作废原始音频的 decodeWave 回调
+
+  // Build single-entry SUBS from fav metadata
+  const clipDurMs = fav.endMs - fav.startMs;
+  SUBS = [{
+    text: fav.text,
+    startMs: 0,
+    endMs: clipDurMs,
+    start: '0:00:00,000',
+    end: fmt(clipDurMs / 1000),
+    wordFracs: fav.wordFracs ? Float32Array.from(fav.wordFracs) : null
+  }];
+  filteredSubs = [...SUBS];
+  curIdx = -1;
+  _favPracticeMode = true;
+
+  // Load the WAV blob as main audio — reuses all existing infrastructure
+  const wavBlob = new Blob([await blob.arrayBuffer()], { type: 'audio/wav' });
+  loadFile(wavBlob);
+
+  // Render banner in subtitle list without switching tabs
+  renderSubList();
+
+  // After audio loads: refine endMs and select the sentence
+  const onLoad = () => {
+    if (!audio) return;
+    SUBS[0].endMs = Math.round(audio.duration * 1000);
+    SUBS[0].end = fmt(audio.duration);
+    filteredSubs = [...SUBS];
+    renderSubList();
+    selectSentence(0);
+    audio.removeEventListener('loadedmetadata', onLoad);
+  };
+  if (audio) audio.addEventListener('loadedmetadata', onLoad);
+}
+
+/* ══════════════════════════════
+   Favorites  (IndexedDB + localStorage)
+══════════════════════════════ */
+let FAVS = [];
+let favDB = null;
+
+function openFavDB() {
+  return new Promise((resolve, reject) => {
+    if (favDB) { resolve(favDB); return; }
+    const req = indexedDB.open('shadowing-app', 1);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('clips')) db.createObjectStore('clips');
+    };
+    req.onsuccess = e => { favDB = e.target.result; resolve(favDB); };
+    req.onerror = () => reject(req.error);
+  });
+}
+async function saveFavClip(id, blob) {
+  const db = await openFavDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('clips', 'readwrite');
+    tx.objectStore('clips').put(blob, id);
+    tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+  });
+}
+async function loadFavClip(id) {
+  const db = await openFavDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('clips', 'readonly');
+    const req = tx.objectStore('clips').get(id);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function deleteFavClip(id) {
+  const db = await openFavDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('clips', 'readwrite');
+    tx.objectStore('clips').delete(id);
+    tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+  });
+}
+function loadFavsFromStorage() {
+  try { FAVS = JSON.parse(localStorage.getItem('shadowing-favs') || '[]'); } catch(e) { FAVS = []; }
+}
+function saveFavsToStorage() { localStorage.setItem('shadowing-favs', JSON.stringify(FAVS)); }
+function isFaved(startMs) { return FAVS.some(f => f.id === 'fav_' + startMs); }
+
+async function extractSegmentWav(startMs, endMs) {
+  if (!origAudioBuffer) return null;
+  const sr = origAudioBuffer.sampleRate;
+  const s0 = Math.floor(startMs / 1000 * sr);
+  const s1 = Math.min(Math.ceil(endMs / 1000 * sr), origAudioBuffer.length);
+  const len = s1 - s0;
+  if (len <= 0) return null;
+  const nCh = origAudioBuffer.numberOfChannels;
+  const mono = new Float32Array(len);
+  for (let ch = 0; ch < nCh; ch++) {
+    const d = origAudioBuffer.getChannelData(ch);
+    for (let i = 0; i < len; i++) mono[i] += d[s0 + i];
+  }
+  if (nCh > 1) for (let i = 0; i < len; i++) mono[i] /= nCh;
+  const targetSr = 22050;
+  let samples = mono, outSr = sr;
+  if (sr !== targetSr) {
+    const ratio = sr / targetSr;
+    const newLen = Math.floor(len / ratio);
+    samples = new Float32Array(newLen);
+    for (let i = 0; i < newLen; i++) samples[i] = mono[Math.min(len - 1, Math.round(i * ratio))];
+    outSr = targetSr;
+  }
+  return float32ToWav(samples, outSr);
+}
+
+const btnStar = document.getElementById('btnStar');
+const starLabel = document.getElementById('starLabel');
+
+function updateStarBtn() {
+  if (!btnStar) return;
+  const starred = curIdx >= 0 && SUBS[curIdx] && isFaved(SUBS[curIdx].startMs);
+  btnStar.classList.toggle('starred', starred);
+  starLabel.textContent = starred ? '已收藏 ★' : '收藏';
+}
+function updateFavCount() {
+  const el = document.getElementById('favCount');
+  if (el) el.textContent = FAVS.length ? ' (' + FAVS.length + ')' : '';
+}
+
+async function toggleFav() {
+  if (curIdx < 0 || !SUBS[curIdx]) return;
+  const s = SUBS[curIdx];
+  const id = 'fav_' + s.startMs;
+  const existingIdx = FAVS.findIndex(f => f.id === id);
+  if (existingIdx >= 0) {
+    FAVS.splice(existingIdx, 1);
+    saveFavsToStorage();
+    deleteFavClip(id).catch(() => {});
+  } else {
+    const blob = await extractSegmentWav(s.startMs, s.endMs);
+    FAVS.push({ id, text: s.text, startMs: s.startMs, endMs: s.endMs, savedAt: Date.now(), hasAudio: !!blob, wordFracs: s.wordFracs ? Array.from(s.wordFracs) : null });
+    saveFavsToStorage();
+    if (blob) saveFavClip(id, blob).catch(() => {});
+  }
+  updateStarBtn();
+  updateFavCount();
+  renderFavList();
+  renderSubList(searchBox.value);
+}
+
+let favAudio = null;
+let favAudioId = null;
+let favKaraokeRaf = null;
+let favEnv = null;
+
+function stopFavKaraoke() {
+  if (favKaraokeRaf) { cancelAnimationFrame(favKaraokeRaf); favKaraokeRaf = null; }
+  document.querySelectorAll('.fav-item.fav-playing').forEach(el => el.classList.remove('fav-playing'));
+  favEnv = null;
+}
+
+async function startFavKaraoke(id, text, wordFracs) {
+  stopFavKaraoke();
+  const item = document.querySelector(`.fav-item[data-id="${id}"]`);
+  if (!item) return;
+  item.classList.add('fav-playing');
+  const canvas = item.querySelector('.fav-karaoke');
+  if (!canvas) return;
+  const wf = wordFracs ? Float32Array.from(wordFracs) : null;
+  // Decode blob to get envelope
+  try {
+    const blob = await loadFavClip(id);
+    if (blob) {
+      const ab = await blob.arrayBuffer();
+      const tmpCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const audioBuf = await tmpCtx.decodeAudioData(ab);
+      tmpCtx.close();
+      favEnv = extractEnvelope(audioBuf.getChannelData(0), 200);
+    }
+  } catch(e) { favEnv = null; }
+  function drawFrame() {
+    if (!favAudio) return;
+    const dur = favAudio.duration || 1;
+    const ph = favAudio.currentTime / dur;
+    drawLyricsBar(canvas, text, favEnv, ph, 1.0, wf);
+    if (!favAudio.paused && !favAudio.ended) {
+      favKaraokeRaf = requestAnimationFrame(drawFrame);
+    }
+  }
+  drawLyricsBar(canvas, text, favEnv, 0, 1.0, wf);
+  drawFrame();
+}
+
+function updateFavPlayBtns() {
+  document.querySelectorAll('.btn-fav-play').forEach(b => {
+    const isThis = b.dataset.id === favAudioId && favAudio && !favAudio.paused;
+    b.textContent = isThis ? '⏸ 暂停' : '▶ 播放';
+    b.style.borderColor = isThis ? 'var(--blue)' : '';
+    b.style.color       = isThis ? 'var(--blue)' : '';
+  });
+}
+
+async function playFavItem(id) {
+  // 点同一条且正在播放 → 暂停
+  if (favAudioId === id && favAudio && !favAudio.paused) {
+    favAudio.pause();
+    updateFavPlayBtns();
+    return;
+  }
+  // 点同一条且已暂停 → 恢复（重新启动karaoke RAF）
+  if (favAudioId === id && favAudio && favAudio.paused && favAudio.currentTime > 0) {
+    favAudio.play();
+    updateFavPlayBtns();
+    const favMeta2 = FAVS.find(f => f.id === id);
+    if (favMeta2) startFavKaraoke(id, favMeta2.text, favMeta2.wordFracs);
+    return;
+  }
+  // 切换到别的条：先停当前
+  if (favAudio) {
+    favAudio.pause();
+    if (favAudio._objUrl) { URL.revokeObjectURL(favAudio._objUrl); favAudio._objUrl = null; }
+    favAudio = null;
+    favAudioId = null;
+    updateFavPlayBtns();
+  }
+  const blob = await loadFavClip(id);
+  if (!blob) { alert('音频片段未找到，请重新收藏'); return; }
+  const url = URL.createObjectURL(blob);
+  favAudio = new Audio(url);
+  favAudio._objUrl = url;
+  favAudioId = id;
+  // look up fav metadata for karaoke
+  const favMeta = FAVS.find(f => f.id === id);
+  favAudio.addEventListener('play', () => { updateFavPlayBtns(); if (favKaraokeRaf == null && favMeta) startFavKaraoke(id, favMeta.text, favMeta.wordFracs); });
+  favAudio.addEventListener('pause', () => { updateFavPlayBtns(); if (favKaraokeRaf) { cancelAnimationFrame(favKaraokeRaf); favKaraokeRaf = null; } });
+  favAudio.addEventListener('ended', () => {
+    URL.revokeObjectURL(url);
+    favAudio._objUrl = null;
+    favAudio = null;
+    favAudioId = null;
+    stopFavKaraoke();
+    updateFavPlayBtns();
+  });
+  favAudio.play();
+  updateFavPlayBtns();
+  if (favMeta) startFavKaraoke(id, favMeta.text, favMeta.wordFracs);
+}
+
+function renderFavList() {
+  const el = document.getElementById('favList');
+  if (!el) return;
+  if (!FAVS.length) {
+    el.innerHTML = '<div class="fav-empty">还没有收藏<br>选中一句后点击 ★ 收藏<br>音频片段会自动保存，无需重新加载音频</div>';
+    return;
+  }
+  el.innerHTML = FAVS.slice().reverse().map(f => `
+    <div class="fav-item" data-id="${f.id}">
+      <div class="fav-text">${f.text}</div>
+      <div class="fav-row">
+        <span class="fav-time">${fmt(f.startMs / 1000)} → ${fmt(f.endMs / 1000)}</span>
+        ${f.hasAudio ? `<button class="btn-fav-play" data-id="${f.id}">▶ 播放</button>` : '<span style="color:var(--text3);font-size:10px">无音频</span>'}
+        <button class="btn-fav-shadow" data-fav-id="${f.id}" title="用收藏音频接管右侧面板，录音+语调对比">跟读 ›</button>
+        <button class="btn-fav-del" data-id="${f.id}" title="删除收藏">✕</button>
+      </div>
+      <canvas class="fav-karaoke" data-id="${f.id}"></canvas>
+    </div>`).join('');
+  el.querySelectorAll('.btn-fav-play').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    playFavItem(b.dataset.id);
+  }));
+  updateFavPlayBtns();
+  el.querySelectorAll('.fav-text').forEach(t => t.addEventListener('click', () => {
+    const id = t.closest('.fav-item').dataset.id;
+    enterFavPractice(id);
+  }));
+  el.querySelectorAll('.btn-fav-shadow').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    enterFavPractice(b.dataset.favId);
+  }));
+  el.querySelectorAll('.btn-fav-del').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    const idx = FAVS.findIndex(f => f.id === b.dataset.id);
+    if (idx >= 0) { deleteFavClip(FAVS[idx].id).catch(() => {}); FAVS.splice(idx, 1); saveFavsToStorage(); }
+    updateFavCount(); renderFavList(); updateStarBtn(); renderSubList(searchBox.value);
+  }));
+}
+
+// Tab switching
+document.getElementById('tabSubs').addEventListener('click', () => {
+  document.getElementById('tabSubs').classList.add('active');
+  document.getElementById('tabFavs').classList.remove('active');
+  document.getElementById('subList').style.display = '';
+  document.getElementById('searchBox').style.display = '';
+  document.getElementById('favList').style.display = 'none';
+});
+document.getElementById('tabFavs').addEventListener('click', () => {
+  document.getElementById('tabFavs').classList.add('active');
+  document.getElementById('tabSubs').classList.remove('active');
+  document.getElementById('subList').style.display = 'none';
+  document.getElementById('searchBox').style.display = 'none';
+  document.getElementById('favList').style.display = '';
+  renderFavList();
+});
+
+btnStar.addEventListener('click', toggleFav);
+
+loadFavsFromStorage();
+updateFavCount();
+renderSubList();
+document.getElementById('btnPlayCmp').addEventListener('click', playComparison);
+window.addEventListener('resize', () => { drawWave(); redrawCharts(); });
+window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', () => { drawWave(); redrawCharts(); });
+
+/* ═══════════════════════════════════════════
+   WhisperX 本地服务器集成
+   启动服务器：python whisperx_server.py
+   拖拽任意音频文件到页面即可自动转录
+═══════════════════════════════════════════ */
+(function initWxDrop() {
+  const SERVER = 'http://127.0.0.1:7749';
+  let serverOk = false;
+
+  async function checkServer() {
+    try {
+      const r = await fetch(`${SERVER}/health`, { signal: AbortSignal.timeout(1500) });
+      serverOk = r.ok;
+      if (serverOk) console.log('[WX] 服务器在线 ✓');
+    } catch(e) { serverOk = false; console.log('[WX] 服务器离线:', e.message); }
+    return serverOk;
+  }
+
+  function showStatus(msg, type) {
+    const p = document.getElementById('wxStatus');
+    const m = document.getElementById('wxMsg');
+    p.className = 'show' + (type ? ' ' + type : '');
+    m.innerHTML = msg;
+  }
+  function hideStatus(ms) {
+    setTimeout(() => { document.getElementById('wxStatus').className = ''; }, ms);
+  }
+
+  async function transcribe(file) {
+    showStatus(`<span class="wx-spinner"></span>上传中… <em>${file.name}</em>`);
+    try {
+      const resp = await fetch(`${SERVER}/transcribe`, {
+        method: 'POST',
+        headers: { 'X-Filename': encodeURIComponent(file.name) },
+        body: file,
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const { job_id } = await resp.json();
+
+      showStatus(`<span class="wx-spinner"></span>转录中… 模型 large-v2，约 3-8 分钟`);
+
+      for (;;) {
+        await new Promise(r => setTimeout(r, 3500));
+        const st = await fetch(`${SERVER}/status/${job_id}`).then(r => r.json());
+        if (st.status === 'done') {
+          const fakeFile = new File(
+            [JSON.stringify(st.result)],
+            file.name.replace(/\.[^.]+$/, '.json'),
+            { type: 'application/json' }
+          );
+          loadWhisperXJson(fakeFile);
+          showStatus(`✓ 完成 — 已载入 ${(st.result.segments||[]).length} 句`, 'done');
+          hideStatus(5000);
+          return;
+        }
+        if (st.status === 'error') {
+          showStatus(`✗ 转录失败<br><small>${st.msg || ''}</small>`, 'err');
+          hideStatus(7000);
+          return;
+        }
+      }
+    } catch(e) {
+      showStatus(`✗ 无法连接服务器<br><small>请在终端运行：python whisperx_server.py</small>`, 'err');
+      hideStatus(7000);
+    }
+  }
+
+  // ── 全局拖拽检测 ──────────────────────────────────────────────
+  const overlay = document.getElementById('wxDragOverlay');
+  let depth = 0;
+
+  document.addEventListener('dragenter', e => {
+    if (e.dataTransfer && [...e.dataTransfer.types].includes('Files')) {
+      depth++;
+      overlay.classList.add('show');
+    }
+  });
+  document.addEventListener('dragleave', () => {
+    depth = Math.max(0, depth - 1);
+    if (!depth) overlay.classList.remove('show');
+  });
+  document.addEventListener('dragover', e => e.preventDefault());
+  document.addEventListener('drop', async e => {
+    e.preventDefault();
+    depth = 0;
+    overlay.classList.remove('show');
+    for (const file of [...e.dataTransfer.files]) {
+      if (/\.srt$/i.test(file.name)) {
+        loadSrt(file);
+      } else if (/\.json$/i.test(file.name)) {
+        loadWhisperXJson(file);
+      } else if (/\.(mp3|mp4|m4a|wav|flac|aac|ogg|webm)$/i.test(file.name)
+                 || file.type.startsWith('audio/')
+                 || file.type.startsWith('video/')) {
+        _favPracticeMode = false;
+        loadFile(file);
+        if (SUBS.length > 0) {
+          showStatus(`✓ 已载入缓存字幕 ${SUBS.length} 句，无需重新转录`, 'done');
+          hideStatus(5000);
+        } else if (await checkServer()) {
+          transcribe(file);
+        } else {
+          showStatus('服务器未运行<br><small>在终端执行：<code>python whisperx_server.py</code><br>音频已加载，字幕可单独上传</small>', 'err');
+          hideStatus(8000);
+        }
+      }
+    }
+  });
+
+  // ── 暴露全局入口，供按钮上传路径调用 ─────────────────────────
+  window.wxTryTranscribe = async function(file) {
+    const isAudio = /\.(mp3|mp4|m4a|wav|flac|aac|ogg|webm)$/i.test(file.name)
+                    || file.type.startsWith('audio/')
+                    || file.type.startsWith('video/');
+    if (!isAudio) return;
+    console.log('[WX] 触发转录:', file.name);
+    // 如果缓存已载入，跳过转录
+    if (SUBS.length > 0) {
+      showStatus(`✓ 已载入缓存字幕 ${SUBS.length} 句，无需重新转录`, 'done');
+      hideStatus(5000);
+      return;
+    }
+    if (await checkServer()) {
+      transcribe(file);
+    } else {
+      showStatus('服务器未运行<br><small>请在终端运行：<code>python whisperx_server.py</code></small>', 'err');
+      hideStatus(8000);
+    }
+  };
+
+  checkServer(); // 页面加载时静默探测
+})();
+</script>
+
+</body>
+</html>
