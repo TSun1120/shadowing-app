@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="36" fill="#111827"/>
+  <!-- Blue bars = original audio -->
+  <rect x="22" y="82" width="18" height="28" rx="5" fill="#5a9fd4"/>
+  <rect x="48" y="60" width="18" height="72" rx="5" fill="#5a9fd4"/>
+  <rect x="74" y="44" width="18" height="104" rx="5" fill="#5a9fd4" opacity="0.9"/>
+  <!-- Orange bars = user recording -->
+  <rect x="102" y="56" width="18" height="80" rx="5" fill="#e07c24"/>
+  <rect x="128" y="70" width="18" height="52" rx="5" fill="#e07c24" opacity="0.9"/>
+  <rect x="154" y="50" width="18" height="92" rx="5" fill="#e07c24" opacity="0.8"/>
+</svg>
